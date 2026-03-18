@@ -215,7 +215,7 @@
         "active" => items.Where(i => i.Status == TodoStatus.Active),
         "done" => items.Where(i => i.Status == TodoStatus.Done),
         "cancelled" => items.Where(i => i.Status == TodoStatus.Cancelled),
-        _ => items
+        _ => items.Where(i => i.Status != TodoStatus.Cancelled)
     };
 
     protected override void OnInitialized()
