@@ -1,0 +1,115 @@
+@page "/"
+@rendermode InteractiveServer
+@using TodoApp.Models
+@using TodoApp.Services
+@inject TodoService TodoService
+
+<PageTitle>Todo App</PageTitle>
+
+<div class="container mt-4" style="max-width: 700px;">
+    <h1 class="mb-4">📝 Todo List</h1>
+
+    <div class="input-group mb-3">
+        <input @bind="newTitle" @bind:event="oninput" @onkeydown="HandleKeyDown"
+               class="form-control" placeholder="What needs to be done?" />
+        <button class="btn btn-primary" @onclick="AddTodo" disabled="@string.IsNullOrWhiteSpace(newTitle)">Add</button>
+    </div>
+
+    @if (!items.Any())
+    {
+        <p class="text-muted text-center">No todos yet. Add one above!</p>
+    }
+    else
+    {
+        <div class="mb-3">
+            <div class="btn-group btn-group-sm">
+                <button class="btn @(filter == "all" ? "btn-primary" : "btn-outline-primary")" @onclick='() => filter = "all"'>All</button>
+                <button class="btn @(filter == "active" ? "btn-primary" : "btn-outline-primary")" @onclick='() => filter = "active"'>Active</button>
+                <button class="btn @(filter == "done" ? "btn-primary" : "btn-outline-primary")" @onclick='() => filter = "done"'>Done</button>
+                <button class="btn @(filter == "cancelled" ? "btn-primary" : "btn-outline-primary")" @onclick='() => filter = "cancelled"'>Cancelled</button>
+            </div>
+        </div>
+
+        <ul class="list-group">
+            @foreach (var item in FilteredItems)
+            {
+                <li class="list-group-item d-flex align-items-center gap-2 @StatusClass(item)">
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary btn-sm" @onclick="() => MoveUp(item.Id)" title="Move up">▲</button>
+                        <button class="btn btn-outline-secondary btn-sm" @onclick="() => MoveDown(item.Id)" title="Move down">▼</button>
+                    </div>
+
+                    <span class="flex-grow-1 @(item.Status != TodoStatus.Active ? "text-decoration-line-through opacity-50" : "")">
+                        @item.Title
+                    </span>
+
+                    @if (item.Status == TodoStatus.Active)
+                    {
+                        <button class="btn btn-success btn-sm" @onclick="() => SetStatus(item.Id, TodoStatus.Done)" title="Mark done">✓</button>
+                        <button class="btn btn-warning btn-sm" @onclick="() => SetStatus(item.Id, TodoStatus.Cancelled)" title="Cancel">✗</button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-outline-secondary btn-sm" @onclick="() => SetStatus(item.Id, TodoStatus.Active)" title="Reactivate">↩</button>
+                    }
+                </li>
+            }
+        </ul>
+
+        <div class="mt-2 text-muted small">
+            @items.Count(i => i.Status == TodoStatus.Active) active,
+            @items.Count(i => i.Status == TodoStatus.Done) done,
+            @items.Count(i => i.Status == TodoStatus.Cancelled) cancelled
+        </div>
+    }
+</div>
+
+@code {
+    private List<TodoItem> items = [];
+    private string newTitle = "";
+    private string filter = "all";
+
+    private IEnumerable<TodoItem> FilteredItems => filter switch
+    {
+        "active" => items.Where(i => i.Status == TodoStatus.Active),
+        "done" => items.Where(i => i.Status == TodoStatus.Done),
+        "cancelled" => items.Where(i => i.Status == TodoStatus.Cancelled),
+        _ => items
+    };
+
+    protected override void OnInitialized()
+    {
+        items = TodoService.GetAll();
+    }
+
+    private void Refresh() => items = TodoService.GetAll();
+
+    private void AddTodo()
+    {
+        if (string.IsNullOrWhiteSpace(newTitle)) return;
+        TodoService.Add(newTitle);
+        newTitle = "";
+        Refresh();
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") AddTodo();
+    }
+
+    private void SetStatus(Guid id, TodoStatus status)
+    {
+        TodoService.SetStatus(id, status);
+        Refresh();
+    }
+
+    private void MoveUp(Guid id) { TodoService.MoveUp(id); Refresh(); }
+    private void MoveDown(Guid id) { TodoService.MoveDown(id); Refresh(); }
+
+    private string StatusClass(TodoItem item) => item.Status switch
+    {
+        TodoStatus.Done => "list-group-item-success",
+        TodoStatus.Cancelled => "list-group-item-secondary",
+        _ => ""
+    };
+}

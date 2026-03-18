@@ -1,0 +1,10 @@
+services:
+  todo-app:
+    build: .
+    ports:
+      - "5080:8080"
+    volumes:
+      - todo-data:/data
+
+volumes:
+  todo-data:
