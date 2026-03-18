@@ -4,62 +4,203 @@
 @using TodoApp.Services
 @inject TodoService TodoService
 
-<PageTitle>Todo App</PageTitle>
+<PageTitle>Todos</PageTitle>
 
-<div class="container mt-4" style="max-width: 700px;">
-    <h1 class="mb-4">📝 Todo List</h1>
+<style>
+    .todo-app {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 1rem;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .todo-header {
+        font-size: 1.5rem;
+        font-weight: 700;
+        padding: 0.75rem 0;
+        color: #333;
+    }
+    .todo-input-row {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    .todo-input-row input {
+        flex: 1;
+        font-size: 1.1rem;
+        padding: 0.85rem 1rem;
+        border: 2px solid #ddd;
+        border-radius: 12px;
+        outline: none;
+    }
+    .todo-input-row input:focus { border-color: #4a90d9; }
+    .todo-input-row button {
+        font-size: 1.1rem;
+        padding: 0.85rem 1.4rem;
+        border: none;
+        border-radius: 12px;
+        background: #4a90d9;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    .todo-input-row button:disabled { opacity: 0.4; }
+    .todo-filters {
+        display: flex;
+        gap: 0.25rem;
+        margin-bottom: 0.75rem;
+        overflow-x: auto;
+    }
+    .todo-filters button {
+        flex: 1;
+        padding: 0.6rem 0;
+        font-size: 0.9rem;
+        border: 2px solid #ddd;
+        border-radius: 10px;
+        background: white;
+        color: #666;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+    .todo-filters button.active {
+        background: #4a90d9;
+        border-color: #4a90d9;
+        color: white;
+        font-weight: 600;
+    }
+    .todo-item {
+        display: flex;
+        align-items: center;
+        background: white;
+        border-radius: 14px;
+        margin-bottom: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        overflow: hidden;
+    }
+    .todo-item.done { background: #f0faf0; }
+    .todo-item.cancelled { background: #f5f5f5; }
+    .todo-reorder {
+        display: flex;
+        flex-direction: column;
+        padding: 0 0.25rem;
+    }
+    .todo-reorder button {
+        background: none;
+        border: none;
+        font-size: 1.1rem;
+        padding: 0.4rem 0.5rem;
+        color: #aaa;
+        cursor: pointer;
+        line-height: 1;
+    }
+    .todo-reorder button:active { color: #333; }
+    .todo-text {
+        flex: 1;
+        padding: 1rem 0.5rem;
+        font-size: 1.05rem;
+        color: #333;
+        word-break: break-word;
+    }
+    .todo-item.done .todo-text,
+    .todo-item.cancelled .todo-text {
+        text-decoration: line-through;
+        color: #aaa;
+    }
+    .todo-actions {
+        display: flex;
+        flex-shrink: 0;
+    }
+    .todo-actions button {
+        border: none;
+        background: none;
+        font-size: 1.5rem;
+        padding: 1rem;
+        cursor: pointer;
+        min-width: 52px;
+        min-height: 52px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .btn-done { color: #4caf50; }
+    .btn-cancel { color: #f44336; }
+    .btn-undo { color: #888; }
+    .btn-done:active { background: #e8f5e9; }
+    .btn-cancel:active { background: #ffebee; }
+    .btn-undo:active { background: #eee; }
+    .todo-empty {
+        text-align: center;
+        color: #aaa;
+        padding: 3rem 1rem;
+        font-size: 1.1rem;
+    }
+    .todo-summary {
+        text-align: center;
+        color: #aaa;
+        font-size: 0.85rem;
+        padding: 0.5rem;
+    }
+</style>
 
-    <div class="input-group mb-3">
+<div class="todo-app">
+    <div class="todo-header">📝 Todos</div>
+
+    <div class="todo-input-row">
         <input @bind="newTitle" @bind:event="oninput" @onkeydown="HandleKeyDown"
-               class="form-control" placeholder="What needs to be done?" />
-        <button class="btn btn-primary" @onclick="AddTodo" disabled="@string.IsNullOrWhiteSpace(newTitle)">Add</button>
+               placeholder="Add a todo…" inputmode="text" />
+        <button @onclick="AddTodo" disabled="@string.IsNullOrWhiteSpace(newTitle)">Add</button>
     </div>
 
-    @if (!items.Any())
+    @if (items.Any())
     {
-        <p class="text-muted text-center">No todos yet. Add one above!</p>
+        <div class="todo-filters">
+            <button class="@(filter == "all" ? "active" : "")" @onclick='() => filter = "all"'>All</button>
+            <button class="@(filter == "active" ? "active" : "")" @onclick='() => filter = "active"'>Active</button>
+            <button class="@(filter == "done" ? "active" : "")" @onclick='() => filter = "done"'>Done</button>
+            <button class="@(filter == "cancelled" ? "active" : "")" @onclick='() => filter = "cancelled"'>Cancelled</button>
+        </div>
+    }
+
+    @if (!FilteredItems.Any())
+    {
+        <div class="todo-empty">
+            @if (!items.Any()) { <span>No todos yet</span> }
+            else { <span>Nothing here</span> }
+        </div>
     }
     else
     {
-        <div class="mb-3">
-            <div class="btn-group btn-group-sm">
-                <button class="btn @(filter == "all" ? "btn-primary" : "btn-outline-primary")" @onclick='() => filter = "all"'>All</button>
-                <button class="btn @(filter == "active" ? "btn-primary" : "btn-outline-primary")" @onclick='() => filter = "active"'>Active</button>
-                <button class="btn @(filter == "done" ? "btn-primary" : "btn-outline-primary")" @onclick='() => filter = "done"'>Done</button>
-                <button class="btn @(filter == "cancelled" ? "btn-primary" : "btn-outline-primary")" @onclick='() => filter = "cancelled"'>Cancelled</button>
-            </div>
-        </div>
+        @foreach (var item in FilteredItems)
+        {
+            <div class="todo-item @item.Status.ToString().ToLower()">
+                <div class="todo-reorder">
+                    <button @onclick="() => MoveUp(item.Id)">▲</button>
+                    <button @onclick="() => MoveDown(item.Id)">▼</button>
+                </div>
 
-        <ul class="list-group">
-            @foreach (var item in FilteredItems)
-            {
-                <li class="list-group-item d-flex align-items-center gap-2 @StatusClass(item)">
-                    <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-secondary btn-sm" @onclick="() => MoveUp(item.Id)" title="Move up">▲</button>
-                        <button class="btn btn-outline-secondary btn-sm" @onclick="() => MoveDown(item.Id)" title="Move down">▼</button>
-                    </div>
+                <div class="todo-text">@item.Title</div>
 
-                    <span class="flex-grow-1 @(item.Status != TodoStatus.Active ? "text-decoration-line-through opacity-50" : "")">
-                        @item.Title
-                    </span>
-
+                <div class="todo-actions">
                     @if (item.Status == TodoStatus.Active)
                     {
-                        <button class="btn btn-success btn-sm" @onclick="() => SetStatus(item.Id, TodoStatus.Done)" title="Mark done">✓</button>
-                        <button class="btn btn-warning btn-sm" @onclick="() => SetStatus(item.Id, TodoStatus.Cancelled)" title="Cancel">✗</button>
+                        <button class="btn-done" @onclick="() => SetStatus(item.Id, TodoStatus.Done)">✓</button>
+                        <button class="btn-cancel" @onclick="() => SetStatus(item.Id, TodoStatus.Cancelled)">✗</button>
                     }
                     else
                     {
-                        <button class="btn btn-outline-secondary btn-sm" @onclick="() => SetStatus(item.Id, TodoStatus.Active)" title="Reactivate">↩</button>
+                        <button class="btn-undo" @onclick="() => SetStatus(item.Id, TodoStatus.Active)">↩</button>
                     }
-                </li>
-            }
-        </ul>
+                </div>
+            </div>
+        }
+    }
 
-        <div class="mt-2 text-muted small">
-            @items.Count(i => i.Status == TodoStatus.Active) active,
-            @items.Count(i => i.Status == TodoStatus.Done) done,
-            @items.Count(i => i.Status == TodoStatus.Cancelled) cancelled
+    @if (items.Any())
+    {
+        <div class="todo-summary">
+            @items.Count(i => i.Status == TodoStatus.Active) active
+            · @items.Count(i => i.Status == TodoStatus.Done) done
+            · @items.Count(i => i.Status == TodoStatus.Cancelled) cancelled
         </div>
     }
 </div>
@@ -105,11 +246,4 @@
 
     private void MoveUp(Guid id) { TodoService.MoveUp(id); Refresh(); }
     private void MoveDown(Guid id) { TodoService.MoveDown(id); Refresh(); }
-
-    private string StatusClass(TodoItem item) => item.Status switch
-    {
-        TodoStatus.Done => "list-group-item-success",
-        TodoStatus.Cancelled => "list-group-item-secondary",
-        _ => ""
-    };
 }
