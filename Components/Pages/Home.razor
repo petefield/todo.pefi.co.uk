@@ -98,6 +98,13 @@
         font-size: 1.05rem;
         color: #333;
         word-break: break-word;
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+    }
+    .todo-age {
+        font-size: 0.75rem;
+        color: #aaa;
     }
     .todo-item.done .todo-text,
     .todo-item.cancelled .todo-text {
@@ -191,6 +198,10 @@
         .todo-text {
             padding: 1.3rem 0.75rem;
             font-size: 1.25rem;
+            gap: 0.2rem;
+        }
+        .todo-age {
+            font-size: 0.85rem;
         }
         .todo-actions button {
             font-size: 1.8rem;
@@ -246,7 +257,10 @@
                 <div class="todo-item @item.Status.ToString().ToLower()" data-id="@item.Id">
                     <div class="drag-handle">⠿</div>
 
-                    <div class="todo-text">@item.Title</div>
+                    <div class="todo-text">
+                        <span>@item.Title</span>
+                        <span class="todo-age">@FormatAge(item.CreatedAt)</span>
+                    </div>
 
                     <div class="todo-actions">
                         @if (item.Status == TodoStatus.Active)
@@ -331,6 +345,15 @@
     {
         TodoService.SetStatus(id, status);
         Refresh();
+    }
+
+    private static string FormatAge(DateTime createdAt)
+    {
+        var span = DateTime.UtcNow - createdAt;
+        if (span.TotalMinutes < 1) return "just now";
+        if (span.TotalDays >= 1)
+            return $"{(int)span.TotalDays}d {span.Hours:D2}:{span.Minutes:D2}";
+        return $"{span.Hours:D2}:{span.Minutes:D2}";
     }
 
     public async ValueTask DisposeAsync()
