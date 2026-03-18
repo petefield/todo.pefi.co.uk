@@ -145,6 +145,71 @@
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         transform: scale(1.02);
     }
+
+    /* Desktop: bigger, more spacious */
+    @@media (min-width: 768px) {
+        .todo-app {
+            max-width: 800px;
+            padding: 2rem 3rem;
+        }
+        .todo-header {
+            font-size: 2.2rem;
+            padding: 1.5rem 0;
+        }
+        .todo-input-row {
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+        .todo-input-row input {
+            font-size: 1.3rem;
+            padding: 1.1rem 1.3rem;
+            border-radius: 14px;
+        }
+        .todo-input-row button {
+            font-size: 1.3rem;
+            padding: 1.1rem 2rem;
+            border-radius: 14px;
+        }
+        .todo-filters {
+            gap: 0.5rem;
+            margin-bottom: 1.25rem;
+        }
+        .todo-filters button {
+            padding: 0.8rem 0;
+            font-size: 1.05rem;
+            border-radius: 12px;
+        }
+        .todo-item {
+            border-radius: 16px;
+            margin-bottom: 0.65rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+        }
+        .drag-handle {
+            padding: 1.3rem 0.8rem 1.3rem 1.2rem;
+            font-size: 1.5rem;
+        }
+        .todo-text {
+            padding: 1.3rem 0.75rem;
+            font-size: 1.25rem;
+        }
+        .todo-actions button {
+            font-size: 1.8rem;
+            padding: 1.2rem 1.3rem;
+            min-width: 64px;
+            min-height: 64px;
+        }
+        .btn-done:hover { background: #e8f5e9; border-radius: 12px; }
+        .btn-cancel:hover { background: #ffebee; border-radius: 12px; }
+        .btn-undo:hover { background: #eee; border-radius: 12px; }
+        .todo-empty {
+            padding: 4rem 1rem;
+            font-size: 1.3rem;
+        }
+        .todo-summary {
+            font-size: 1rem;
+            padding: 1rem;
+        }
+    }
 </style>
 
 <div class="todo-app">
