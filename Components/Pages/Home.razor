@@ -3,6 +3,8 @@
 @using TodoApp.Models
 @using TodoApp.Services
 @inject TodoService TodoService
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 
 <PageTitle>Todos</PageTitle>
 
@@ -13,6 +15,7 @@
         padding: 1rem;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         -webkit-tap-highlight-color: transparent;
+        user-select: none;
     }
     .todo-header {
         font-size: 1.5rem;
@@ -79,21 +82,16 @@
     }
     .todo-item.done { background: #f0faf0; }
     .todo-item.cancelled { background: #f5f5f5; }
-    .todo-reorder {
+    .drag-handle {
         display: flex;
-        flex-direction: column;
-        padding: 0 0.25rem;
+        align-items: center;
+        padding: 1rem 0.6rem 1rem 0.8rem;
+        cursor: grab;
+        color: #ccc;
+        font-size: 1.2rem;
+        touch-action: none;
     }
-    .todo-reorder button {
-        background: none;
-        border: none;
-        font-size: 1.1rem;
-        padding: 0.4rem 0.5rem;
-        color: #aaa;
-        cursor: pointer;
-        line-height: 1;
-    }
-    .todo-reorder button:active { color: #333; }
+    .drag-handle:active { cursor: grabbing; color: #999; }
     .todo-text {
         flex: 1;
         padding: 1rem 0.5rem;
@@ -140,6 +138,13 @@
         font-size: 0.85rem;
         padding: 0.5rem;
     }
+    .sortable-ghost {
+        opacity: 0.3;
+    }
+    .sortable-chosen {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transform: scale(1.02);
+    }
 </style>
 
 <div class="todo-app">
@@ -170,29 +175,28 @@
     }
     else
     {
-        @foreach (var item in FilteredItems)
-        {
-            <div class="todo-item @item.Status.ToString().ToLower()">
-                <div class="todo-reorder">
-                    <button @onclick="() => MoveUp(item.Id)">▲</button>
-                    <button @onclick="() => MoveDown(item.Id)">▼</button>
-                </div>
+        <div @ref="listElement" class="todo-list">
+            @foreach (var item in FilteredItems)
+            {
+                <div class="todo-item @item.Status.ToString().ToLower()" data-id="@item.Id">
+                    <div class="drag-handle">⠿</div>
 
-                <div class="todo-text">@item.Title</div>
+                    <div class="todo-text">@item.Title</div>
 
-                <div class="todo-actions">
-                    @if (item.Status == TodoStatus.Active)
-                    {
-                        <button class="btn-done" @onclick="() => SetStatus(item.Id, TodoStatus.Done)">✓</button>
-                        <button class="btn-cancel" @onclick="() => SetStatus(item.Id, TodoStatus.Cancelled)">✗</button>
-                    }
-                    else
-                    {
-                        <button class="btn-undo" @onclick="() => SetStatus(item.Id, TodoStatus.Active)">↩</button>
-                    }
+                    <div class="todo-actions">
+                        @if (item.Status == TodoStatus.Active)
+                        {
+                            <button class="btn-done" @onclick="() => SetStatus(item.Id, TodoStatus.Done)">✓</button>
+                            <button class="btn-cancel" @onclick="() => SetStatus(item.Id, TodoStatus.Cancelled)">✗</button>
+                        }
+                        else
+                        {
+                            <button class="btn-undo" @onclick="() => SetStatus(item.Id, TodoStatus.Active)">↩</button>
+                        }
+                    </div>
                 </div>
-            </div>
-        }
+            }
+        </div>
     }
 
     @if (items.Any())
@@ -209,6 +213,8 @@
     private List<TodoItem> items = [];
     private string newTitle = "";
     private string filter = "all";
+    private ElementReference listElement;
+    private DotNetObjectReference<Home>? dotNetRef;
 
     private IEnumerable<TodoItem> FilteredItems => filter switch
     {
@@ -221,6 +227,24 @@
     protected override void OnInitialized()
     {
         items = TodoService.GetAll();
+        dotNetRef = DotNetObjectReference.Create(this);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (FilteredItems.Any())
+        {
+            await JS.InvokeVoidAsync("initSortable", listElement, dotNetRef);
+        }
+    }
+
+    [JSInvokable]
+    public void OnReorder(string[] ids)
+    {
+        var guidList = ids.Select(Guid.Parse).ToList();
+        TodoService.Reorder(guidList);
+        items = TodoService.GetAll();
+        StateHasChanged();
     }
 
     private void Refresh() => items = TodoService.GetAll();
@@ -244,6 +268,12 @@
         Refresh();
     }
 
-    private void MoveUp(Guid id) { TodoService.MoveUp(id); Refresh(); }
-    private void MoveDown(Guid id) { TodoService.MoveDown(id); Refresh(); }
+    public async ValueTask DisposeAsync()
+    {
+        if (dotNetRef != null)
+        {
+            try { await JS.InvokeVoidAsync("destroySortable", listElement); } catch { }
+            dotNetRef.Dispose();
+        }
+    }
 }

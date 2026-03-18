@@ -78,6 +78,20 @@ public class TodoService
         }
     }
 
+    public void Reorder(List<Guid> orderedIds)
+    {
+        lock (_lock)
+        {
+            for (int i = 0; i < orderedIds.Count; i++)
+            {
+                var item = _items.FirstOrDefault(t => t.Id == orderedIds[i]);
+                if (item != null)
+                    item.Order = i;
+            }
+            Save();
+        }
+    }
+
     public void Delete(Guid id)
     {
         lock (_lock)
