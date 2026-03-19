@@ -110,18 +110,41 @@ public class TodoService
         }
     }
 
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        WriteIndented = true,
+        Converters = { new TodoStatusConverter() }
+    };
+
     private void Load()
     {
         if (File.Exists(_filePath))
         {
             var json = File.ReadAllText(_filePath);
-            _items = JsonSerializer.Deserialize<List<TodoItem>>(json) ?? [];
+            _items = JsonSerializer.Deserialize<List<TodoItem>>(json, JsonOptions) ?? [];
         }
     }
 
     private void Save()
     {
-        var json = JsonSerializer.Serialize(_items, new JsonSerializerOptions { WriteIndented = true });
+        var json = JsonSerializer.Serialize(_items, JsonOptions);
         File.WriteAllText(_filePath, json);
+    }
+}
+
+// Handles backward compatibility: "Active" in JSON → Pending enum
+public class TodoStatusConverter : System.Text.Json.Serialization.JsonConverter<TodoStatus>
+{
+    public override TodoStatus Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        var value = reader.GetString();
+        if (string.Equals(value, "Active", StringComparison.OrdinalIgnoreCase))
+            return TodoStatus.Pending;
+        return Enum.TryParse<TodoStatus>(value, true, out var status) ? status : TodoStatus.Pending;
+    }
+
+    public override void Write(Utf8JsonWriter writer, TodoStatus value, JsonSerializerOptions options)
+    {
+        writer.WriteStringValue(value.ToString());
     }
 }
