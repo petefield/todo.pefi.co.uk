@@ -265,7 +265,7 @@
 
         <div class="todo-filters">
             <button class="@(filters.Count == 0 ? "active" : "")" @onclick="ToggleAll">All</button>
-            <button class="@(filters.Contains(TodoStatus.Active) ? "active" : "")" @onclick="() => ToggleFilter(TodoStatus.Active)">Active</button>
+            <button class="@(filters.Contains(TodoStatus.Pending) ? "active" : "")" @onclick="() => ToggleFilter(TodoStatus.Pending)">Pending</button>
             <button class="@(filters.Contains(TodoStatus.InProgress) ? "active" : "")" @onclick="() => ToggleFilter(TodoStatus.InProgress)">In Progress</button>
             <button class="@(filters.Contains(TodoStatus.Done) ? "active" : "")" @onclick="() => ToggleFilter(TodoStatus.Done)">Done</button>
             <button class="@(filters.Contains(TodoStatus.Cancelled) ? "active" : "")" @onclick="() => ToggleFilter(TodoStatus.Cancelled)">Cancelled</button>
@@ -293,7 +293,7 @@
                     </div>
 
                     <div class="todo-actions">
-                        @if (item.Status == TodoStatus.Active)
+                        @if (item.Status == TodoStatus.Pending)
                         {
                             <button class="btn-inprogress" @onclick="() => SetStatus(item.Id, TodoStatus.InProgress)" title="Start">▶</button>
                             <button class="btn-done" @onclick="() => SetStatus(item.Id, TodoStatus.Done)" title="Done">✓</button>
@@ -302,11 +302,11 @@
                         else if (item.Status == TodoStatus.InProgress)
                         {
                             <button class="btn-done" @onclick="() => SetStatus(item.Id, TodoStatus.Done)" title="Done">✓</button>
-                            <button class="btn-undo" @onclick="() => SetStatus(item.Id, TodoStatus.Active)" title="Back to active">↩</button>
+                            <button class="btn-undo" @onclick="() => SetStatus(item.Id, TodoStatus.Pending)" title="Back to pending">↩</button>
                         }
                         else
                         {
-                            <button class="btn-undo" @onclick="() => SetStatus(item.Id, TodoStatus.Active)" title="Reactivate">↩</button>
+                            <button class="btn-undo" @onclick="() => SetStatus(item.Id, TodoStatus.Pending)" title="Reactivate">↩</button>
                         }
                     </div>
                 </div>
@@ -317,7 +317,7 @@
     @if (items.Any())
     {
         <div class="todo-summary">
-            @items.Count(i => i.Status == TodoStatus.Active) active
+            @items.Count(i => i.Status == TodoStatus.Pending) pending
             · @items.Count(i => i.Status == TodoStatus.InProgress) in progress
             · @items.Count(i => i.Status == TodoStatus.Done) done
             · @items.Count(i => i.Status == TodoStatus.Cancelled) cancelled
