@@ -12,42 +12,59 @@ window.celebrate = () => {
     // Applause sound using Web Audio API
     try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const duration = 1.2;
+        const duration = 1.5;
         const sampleRate = ctx.sampleRate;
         const length = sampleRate * duration;
         const buffer = ctx.createBuffer(1, length, sampleRate);
         const data = buffer.getChannelData(0);
 
-        // Generate applause-like noise with envelope
-        for (let i = 0; i < length; i++) {
-            const t = i / sampleRate;
-            // Envelope: quick attack, sustain, fade out
-            let envelope;
-            if (t < 0.05) envelope = t / 0.05;
-            else if (t < 0.6) envelope = 1.0;
-            else envelope = Math.max(0, 1.0 - (t - 0.6) / 0.6);
+        // Simulate many individual claps overlapping
+        const numClaps = 80;
+        for (let c = 0; c < numClaps; c++) {
+            // Each clap starts at a random time, clustered toward the beginning
+            const clapStart = Math.random() * 0.8 * sampleRate;
+            const clapLen = Math.floor((0.01 + Math.random() * 0.025) * sampleRate);
+            const clapVol = 0.15 + Math.random() * 0.2;
 
-            // Layered filtered noise for clapping texture
-            const noise = (Math.random() * 2 - 1);
-            const burstRate = 18;
-            const burst = 0.5 + 0.5 * Math.sin(t * burstRate * Math.PI * 2);
-            data[i] = noise * envelope * burst * 0.3;
+            for (let i = 0; i < clapLen && (clapStart + i) < length; i++) {
+                const t = i / clapLen;
+                // Sharp attack, quick decay — like a single handclap
+                const env = Math.exp(-t * 12) * (1 - Math.exp(-t * 500));
+                const idx = Math.floor(clapStart + i);
+                data[idx] += (Math.random() * 2 - 1) * env * clapVol;
+            }
         }
 
-        // Bandpass filter for more realistic sound
+        // Overall envelope: fade out the whole thing
+        for (let i = 0; i < length; i++) {
+            const t = i / sampleRate;
+            let env;
+            if (t < 0.05) env = t / 0.05;
+            else if (t < 0.7) env = 1.0;
+            else env = Math.max(0, 1.0 - (t - 0.7) / 0.8);
+            data[i] *= env;
+            // Clamp
+            data[i] = Math.max(-1, Math.min(1, data[i]));
+        }
+
         const source = ctx.createBufferSource();
         source.buffer = buffer;
 
-        const bandpass = ctx.createBiquadFilter();
-        bandpass.type = 'bandpass';
-        bandpass.frequency.value = 3000;
-        bandpass.Q.value = 0.5;
+        // Bandpass to remove low rumble and harsh highs
+        const hp = ctx.createBiquadFilter();
+        hp.type = 'highpass';
+        hp.frequency.value = 800;
+
+        const lp = ctx.createBiquadFilter();
+        lp.type = 'lowpass';
+        lp.frequency.value = 6000;
 
         const gain = ctx.createGain();
-        gain.gain.value = 0.6;
+        gain.gain.value = 0.8;
 
-        source.connect(bandpass);
-        bandpass.connect(gain);
+        source.connect(hp);
+        hp.connect(lp);
+        lp.connect(gain);
         gain.connect(ctx.destination);
         source.start();
 
