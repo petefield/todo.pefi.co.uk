@@ -81,6 +81,7 @@
         overflow: hidden;
     }
     .todo-item.done { background: #f0faf0; }
+    .todo-item.inprogress { background: #fff8e6; }
     .todo-item.cancelled { background: #f5f5f5; }
     .drag-handle {
         display: flex;
@@ -111,6 +112,9 @@
         text-decoration: line-through;
         color: #aaa;
     }
+    .todo-item.inprogress .todo-text {
+        font-weight: 600;
+    }
     .todo-actions {
         display: flex;
         flex-shrink: 0;
@@ -128,9 +132,11 @@
         justify-content: center;
     }
     .btn-done { color: #4caf50; }
+    .btn-inprogress { color: #f59e0b; }
     .btn-cancel { color: #f44336; }
     .btn-undo { color: #888; }
     .btn-done:active { background: #e8f5e9; }
+    .btn-inprogress:active { background: #fef3c7; }
     .btn-cancel:active { background: #ffebee; }
     .btn-undo:active { background: #eee; }
     .todo-empty {
@@ -210,6 +216,7 @@
             min-height: 64px;
         }
         .btn-done:hover { background: #e8f5e9; border-radius: 12px; }
+        .btn-inprogress:hover { background: #fef3c7; border-radius: 12px; }
         .btn-cancel:hover { background: #ffebee; border-radius: 12px; }
         .btn-undo:hover { background: #eee; border-radius: 12px; }
         .todo-empty {
@@ -259,6 +266,7 @@
         <div class="todo-filters">
             <button class="@(filter == "all" ? "active" : "")" @onclick='() => filter = "all"'>All</button>
             <button class="@(filter == "active" ? "active" : "")" @onclick='() => filter = "active"'>Active</button>
+            <button class="@(filter == "inprogress" ? "active" : "")" @onclick='() => filter = "inprogress"'>In Progress</button>
             <button class="@(filter == "done" ? "active" : "")" @onclick='() => filter = "done"'>Done</button>
             <button class="@(filter == "cancelled" ? "active" : "")" @onclick='() => filter = "cancelled"'>Cancelled</button>
         </div>
@@ -287,12 +295,18 @@
                     <div class="todo-actions">
                         @if (item.Status == TodoStatus.Active)
                         {
-                            <button class="btn-done" @onclick="() => SetStatus(item.Id, TodoStatus.Done)">✓</button>
-                            <button class="btn-cancel" @onclick="() => SetStatus(item.Id, TodoStatus.Cancelled)">✗</button>
+                            <button class="btn-inprogress" @onclick="() => SetStatus(item.Id, TodoStatus.InProgress)" title="Start">▶</button>
+                            <button class="btn-done" @onclick="() => SetStatus(item.Id, TodoStatus.Done)" title="Done">✓</button>
+                            <button class="btn-cancel" @onclick="() => SetStatus(item.Id, TodoStatus.Cancelled)" title="Cancel">✗</button>
+                        }
+                        else if (item.Status == TodoStatus.InProgress)
+                        {
+                            <button class="btn-done" @onclick="() => SetStatus(item.Id, TodoStatus.Done)" title="Done">✓</button>
+                            <button class="btn-undo" @onclick="() => SetStatus(item.Id, TodoStatus.Active)" title="Back to active">↩</button>
                         }
                         else
                         {
-                            <button class="btn-undo" @onclick="() => SetStatus(item.Id, TodoStatus.Active)">↩</button>
+                            <button class="btn-undo" @onclick="() => SetStatus(item.Id, TodoStatus.Active)" title="Reactivate">↩</button>
                         }
                     </div>
                 </div>
@@ -304,6 +318,7 @@
     {
         <div class="todo-summary">
             @items.Count(i => i.Status == TodoStatus.Active) active
+            · @items.Count(i => i.Status == TodoStatus.InProgress) in progress
             · @items.Count(i => i.Status == TodoStatus.Done) done
             · @items.Count(i => i.Status == TodoStatus.Cancelled) cancelled
         </div>
@@ -325,6 +340,7 @@
             var result = filter switch
             {
                 "active" => items.Where(i => i.Status == TodoStatus.Active),
+                "inprogress" => items.Where(i => i.Status == TodoStatus.InProgress),
                 "done" => items.Where(i => i.Status == TodoStatus.Done),
                 "cancelled" => items.Where(i => i.Status == TodoStatus.Cancelled),
                 _ => items.Where(i => i.Status != TodoStatus.Cancelled)

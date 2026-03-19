@@ -12,6 +12,7 @@ public class TodoItem
 public enum TodoStatus
 {
     Active,
+    InProgress,
     Done,
     Cancelled
 }
