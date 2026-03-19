@@ -253,7 +253,7 @@
 
     <div class="todo-input-row">
         <input @bind="newTitle" @bind:event="oninput" @onkeydown="HandleKeyDown"
-               placeholder="Add a todo…" inputmode="text" />
+               placeholder="Add a to do…" inputmode="text" />
         <button @onclick="AddTodo" disabled="@string.IsNullOrWhiteSpace(newTitle)">Add</button>
     </div>
 
@@ -275,7 +275,7 @@
     @if (!FilteredItems.Any())
     {
         <div class="todo-empty">
-            @if (!items.Any()) { <span>No todos yet</span> }
+            @if (!items.Any()) { <span>No to do's yet</span> }
             else { <span>Nothing here</span> }
         </div>
     }

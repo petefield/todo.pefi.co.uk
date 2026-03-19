@@ -1,7 +1,7 @@
 {
   "name": "To Do's",
   "short_name": "To Do's",
-  "description": "A simple todo list app",
+  "description": "A simple to do list app",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f5f5f5",
