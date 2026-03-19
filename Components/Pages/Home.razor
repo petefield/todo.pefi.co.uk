@@ -6,7 +6,7 @@
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
-<PageTitle>Todos</PageTitle>
+<PageTitle>To Do's</PageTitle>
 
 <style>
     .todo-app {
@@ -249,7 +249,7 @@
 </style>
 
 <div class="todo-app">
-    <div class="todo-header">📝 Todos</div>
+    <div class="todo-header">📝 To Do's</div>
 
     <div class="todo-input-row">
         <input @bind="newTitle" @bind:event="oninput" @onkeydown="HandleKeyDown"
