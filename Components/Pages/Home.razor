@@ -391,10 +391,14 @@
         if (e.Key == "Enter") AddTodo();
     }
 
-    private void SetStatus(Guid id, TodoStatus status)
+    private async Task SetStatus(Guid id, TodoStatus status)
     {
         TodoService.SetStatus(id, status);
         Refresh();
+        if (status == TodoStatus.Done)
+        {
+            await JS.InvokeVoidAsync("celebrate");
+        }
     }
 
     private static string FormatAge(DateTime createdAt)
