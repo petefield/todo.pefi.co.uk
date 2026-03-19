@@ -137,6 +137,12 @@ public class TodoStatusConverter : System.Text.Json.Serialization.JsonConverter<
 {
     public override TodoStatus Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
+        if (reader.TokenType == JsonTokenType.Number)
+        {
+            var num = reader.GetInt32();
+            return Enum.IsDefined(typeof(TodoStatus), num) ? (TodoStatus)num : TodoStatus.Pending;
+        }
+
         var value = reader.GetString();
         if (string.Equals(value, "Active", StringComparison.OrdinalIgnoreCase))
             return TodoStatus.Pending;
