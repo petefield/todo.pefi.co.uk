@@ -11,7 +11,7 @@ window.celebrate = () => {
 
     // Play applause sound
     try {
-        const audio = new Audio('/applause.mp3');
+        const audio = new Audio('/driken5482-applause-cheer-236786.mp3');
         audio.volume = 0.7;
         audio.play();
     } catch (e) { }
