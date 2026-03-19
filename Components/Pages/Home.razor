@@ -220,7 +220,25 @@
             font-size: 1rem;
             padding: 1rem;
         }
+        .todo-search input {
+            font-size: 1.15rem;
+            padding: 0.9rem 1.2rem;
+            border-radius: 14px;
+        }
     }
+    .todo-search {
+        margin-bottom: 0.75rem;
+    }
+    .todo-search input {
+        width: 100%;
+        font-size: 1rem;
+        padding: 0.7rem 1rem;
+        border: 2px solid #ddd;
+        border-radius: 12px;
+        outline: none;
+        background: white;
+    }
+    .todo-search input:focus { border-color: #4a90d9; }
 </style>
 
 <div class="todo-app">
@@ -234,6 +252,10 @@
 
     @if (items.Any())
     {
+        <div class="todo-search">
+            <input @bind="searchQuery" @bind:event="oninput" placeholder="Search…" inputmode="search" />
+        </div>
+
         <div class="todo-filters">
             <button class="@(filter == "all" ? "active" : "")" @onclick='() => filter = "all"'>All</button>
             <button class="@(filter == "active" ? "active" : "")" @onclick='() => filter = "active"'>Active</button>
@@ -291,17 +313,29 @@
 @code {
     private List<TodoItem> items = [];
     private string newTitle = "";
+    private string searchQuery = "";
     private string filter = "all";
     private ElementReference listElement;
     private DotNetObjectReference<Home>? dotNetRef;
 
-    private IEnumerable<TodoItem> FilteredItems => filter switch
+    private IEnumerable<TodoItem> FilteredItems
     {
-        "active" => items.Where(i => i.Status == TodoStatus.Active),
-        "done" => items.Where(i => i.Status == TodoStatus.Done),
-        "cancelled" => items.Where(i => i.Status == TodoStatus.Cancelled),
-        _ => items.Where(i => i.Status != TodoStatus.Cancelled)
-    };
+        get
+        {
+            var result = filter switch
+            {
+                "active" => items.Where(i => i.Status == TodoStatus.Active),
+                "done" => items.Where(i => i.Status == TodoStatus.Done),
+                "cancelled" => items.Where(i => i.Status == TodoStatus.Cancelled),
+                _ => items.Where(i => i.Status != TodoStatus.Cancelled)
+            };
+
+            if (!string.IsNullOrWhiteSpace(searchQuery))
+                result = result.Where(i => i.Title.Contains(searchQuery, StringComparison.OrdinalIgnoreCase));
+
+            return result;
+        }
+    }
 
     protected override void OnInitialized()
     {
