@@ -82,11 +82,20 @@ public class TodoService
     {
         lock (_lock)
         {
-            for (int i = 0; i < orderedIds.Count; i++)
+            // Get the current order values of the items being reordered
+            var orderSlots = orderedIds
+                .Select(id => _items.FirstOrDefault(t => t.Id == id))
+                .Where(t => t != null)
+                .Select(t => t!.Order)
+                .OrderBy(o => o)
+                .ToList();
+
+            // Assign the sorted order slots to the items in their new sequence
+            for (int i = 0; i < orderedIds.Count && i < orderSlots.Count; i++)
             {
                 var item = _items.FirstOrDefault(t => t.Id == orderedIds[i]);
                 if (item != null)
-                    item.Order = i;
+                    item.Order = orderSlots[i];
             }
             Save();
         }
