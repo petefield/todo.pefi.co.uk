@@ -264,11 +264,11 @@
         </div>
 
         <div class="todo-filters">
-            <button class="@(filter == "all" ? "active" : "")" @onclick='() => filter = "all"'>All</button>
-            <button class="@(filter == "active" ? "active" : "")" @onclick='() => filter = "active"'>Active</button>
-            <button class="@(filter == "inprogress" ? "active" : "")" @onclick='() => filter = "inprogress"'>In Progress</button>
-            <button class="@(filter == "done" ? "active" : "")" @onclick='() => filter = "done"'>Done</button>
-            <button class="@(filter == "cancelled" ? "active" : "")" @onclick='() => filter = "cancelled"'>Cancelled</button>
+            <button class="@(filters.Count == 0 ? "active" : "")" @onclick="ToggleAll">All</button>
+            <button class="@(filters.Contains(TodoStatus.Active) ? "active" : "")" @onclick="() => ToggleFilter(TodoStatus.Active)">Active</button>
+            <button class="@(filters.Contains(TodoStatus.InProgress) ? "active" : "")" @onclick="() => ToggleFilter(TodoStatus.InProgress)">In Progress</button>
+            <button class="@(filters.Contains(TodoStatus.Done) ? "active" : "")" @onclick="() => ToggleFilter(TodoStatus.Done)">Done</button>
+            <button class="@(filters.Contains(TodoStatus.Cancelled) ? "active" : "")" @onclick="() => ToggleFilter(TodoStatus.Cancelled)">Cancelled</button>
         </div>
     }
 
@@ -329,7 +329,7 @@
     private List<TodoItem> items = [];
     private string newTitle = "";
     private string searchQuery = "";
-    private string filter = "all";
+    private HashSet<TodoStatus> filters = new();
     private ElementReference listElement;
     private DotNetObjectReference<Home>? dotNetRef;
 
@@ -337,14 +337,11 @@
     {
         get
         {
-            var result = filter switch
-            {
-                "active" => items.Where(i => i.Status == TodoStatus.Active),
-                "inprogress" => items.Where(i => i.Status == TodoStatus.InProgress),
-                "done" => items.Where(i => i.Status == TodoStatus.Done),
-                "cancelled" => items.Where(i => i.Status == TodoStatus.Cancelled),
-                _ => items.Where(i => i.Status != TodoStatus.Cancelled)
-            };
+            IEnumerable<TodoItem> result;
+            if (filters.Count == 0)
+                result = items.Where(i => i.Status != TodoStatus.Cancelled);
+            else
+                result = items.Where(i => filters.Contains(i.Status));
 
             if (!string.IsNullOrWhiteSpace(searchQuery))
                 result = result.Where(i => i.Title.Contains(searchQuery, StringComparison.OrdinalIgnoreCase));
@@ -390,6 +387,14 @@
     {
         if (e.Key == "Enter") AddTodo();
     }
+
+    private void ToggleFilter(TodoStatus status)
+    {
+        if (!filters.Remove(status))
+            filters.Add(status);
+    }
+
+    private void ToggleAll() => filters.Clear();
 
     private async Task SetStatus(Guid id, TodoStatus status)
     {
