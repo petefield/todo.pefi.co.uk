@@ -350,9 +350,9 @@
         }
     }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        items = TodoService.GetAll();
+        items = await TodoService.GetAllAsync();
         dotNetRef = DotNetObjectReference.Create(this);
     }
 
@@ -365,27 +365,27 @@
     }
 
     [JSInvokable]
-    public void OnReorder(string[] ids)
+    public async Task OnReorder(string[] ids)
     {
         var guidList = ids.Select(Guid.Parse).ToList();
-        TodoService.Reorder(guidList);
-        items = TodoService.GetAll();
+        await TodoService.ReorderAsync(guidList);
+        items = await TodoService.GetAllAsync();
         StateHasChanged();
     }
 
-    private void Refresh() => items = TodoService.GetAll();
+    private async Task RefreshAsync() => items = await TodoService.GetAllAsync();
 
-    private void AddTodo()
+    private async Task AddTodo()
     {
         if (string.IsNullOrWhiteSpace(newTitle)) return;
-        TodoService.Add(newTitle);
+        await TodoService.AddAsync(newTitle);
         newTitle = "";
-        Refresh();
+        await RefreshAsync();
     }
 
-    private void HandleKeyDown(KeyboardEventArgs e)
+    private async Task HandleKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter") AddTodo();
+        if (e.Key == "Enter") await AddTodo();
     }
 
     private void ToggleFilter(TodoStatus status)
@@ -398,8 +398,8 @@
 
     private async Task SetStatus(Guid id, TodoStatus status)
     {
-        TodoService.SetStatus(id, status);
-        Refresh();
+        await TodoService.SetStatusAsync(id, status);
+        await RefreshAsync();
         if (status == TodoStatus.Done)
         {
             await JS.InvokeVoidAsync("celebrate");
