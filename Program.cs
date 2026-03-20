@@ -13,7 +13,8 @@ var cosmosClientOptions = new CosmosClientOptions
     SerializerOptions = new CosmosSerializationOptions
     {
         PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
-    }
+    },
+    RequestTimeout = TimeSpan.FromSeconds(5)
 };
 
 // For the emulator, bypass SSL validation
@@ -29,6 +30,7 @@ if (cosmosConnectionString.Contains("localhost") || cosmosConnectionString.Conta
         return new HttpClient(handler);
     };
     cosmosClientOptions.ConnectionMode = ConnectionMode.Gateway;
+    cosmosClientOptions.LimitToEndpoint = true;
 }
 
 var cosmosClient = new CosmosClient(cosmosConnectionString, cosmosClientOptions);
@@ -40,8 +42,24 @@ builder.Services.AddRazorComponents()
 
 var app = builder.Build();
 
-// Initialize Cosmos DB database and container
-await TodoService.InitializeAsync(cosmosClient, app.Configuration);
+// Initialize Cosmos DB with retry for emulator startup
+var maxRetries = 30;
+Console.WriteLine("Starting Cosmos DB initialization...");
+for (int i = 0; i < maxRetries; i++)
+{
+    try
+    {
+        Console.WriteLine($"Cosmos DB init attempt {i + 1}/{maxRetries}...");
+        await TodoService.InitializeAsync(cosmosClient, app.Configuration);
+        Console.WriteLine("Cosmos DB initialized successfully!");
+        break;
+    }
+    catch (Exception ex) when (i < maxRetries - 1)
+    {
+        Console.WriteLine($"Waiting for Cosmos DB... attempt {i + 1}/{maxRetries}: {ex.Message}");
+        await Task.Delay(5000);
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
