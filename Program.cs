@@ -14,24 +14,10 @@ var cosmosClientOptions = new CosmosClientOptions
     {
         PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
     },
-    RequestTimeout = TimeSpan.FromSeconds(5)
+    RequestTimeout = TimeSpan.FromSeconds(5),
+    ConnectionMode = ConnectionMode.Gateway,
+    LimitToEndpoint = true
 };
-
-// For the emulator, bypass SSL validation
-if (cosmosConnectionString.Contains("localhost") || cosmosConnectionString.Contains("cosmosdb"))
-{
-    cosmosClientOptions.HttpClientFactory = () =>
-    {
-        var handler = new HttpClientHandler
-        {
-            ServerCertificateCustomValidationCallback =
-                HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-        };
-        return new HttpClient(handler);
-    };
-    cosmosClientOptions.ConnectionMode = ConnectionMode.Gateway;
-    cosmosClientOptions.LimitToEndpoint = true;
-}
 
 var cosmosClient = new CosmosClient(cosmosConnectionString, cosmosClientOptions);
 builder.Services.AddSingleton(cosmosClient);

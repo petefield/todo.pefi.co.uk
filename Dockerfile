@@ -10,6 +10,7 @@ RUN dotnet publish TodoApp.csproj -c Release -o /app
 FROM mcr.microsoft.com/dotnet/aspnet:9.0
 WORKDIR /app
 COPY --from=build /src/zscaler_root.crt /usr/local/share/ca-certificates/
+COPY certs/cosmosdb.crt /usr/local/share/ca-certificates/cosmosdb.crt
 RUN update-ca-certificates
 COPY --from=build /app .
 EXPOSE 8080

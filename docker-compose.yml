@@ -7,8 +7,11 @@ services:
     environment:
       AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE: "true"
       AZURE_COSMOS_EMULATOR_IP_ADDRESS_OVERRIDE: "cosmosdb"
+      CERT_PATH: /certs/cosmosdb.pfx
+      CERT_SECRET: "cosmos-cert"
     volumes:
       - cosmos-data:/tmp/cosmos
+      - ./certs:/certs:ro
 
   todo-app:
     build: .
