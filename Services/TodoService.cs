@@ -1,5 +1,4 @@
 using Microsoft.Azure.Cosmos;
-using Microsoft.Azure.Cosmos.Linq;
 using TodoApp.Models;
 
 namespace TodoApp.Services;
@@ -7,6 +6,8 @@ namespace TodoApp.Services;
 public class TodoService
 {
     private readonly Container _container;
+    private const string DocumentId = "todo-list";
+    private const string PartitionKey = "todo-list";
 
     public TodoService(CosmosClient cosmosClient, IConfiguration configuration)
     {
@@ -21,89 +22,91 @@ public class TodoService
         var containerName = configuration.GetValue<string>("CosmosDb:ContainerName") ?? "Todos";
         var database = await cosmosClient.CreateDatabaseIfNotExistsAsync(databaseName);
         await database.Database.CreateContainerIfNotExistsAsync(containerName, "/id");
+
+        // Ensure the single document exists
+        var container = cosmosClient.GetContainer(databaseName, containerName);
+        try
+        {
+            await container.ReadItemAsync<TodoList>(DocumentId, new Microsoft.Azure.Cosmos.PartitionKey(PartitionKey));
+        }
+        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            await container.CreateItemAsync(new TodoList(), new Microsoft.Azure.Cosmos.PartitionKey(PartitionKey));
+        }
+    }
+
+    private async Task<TodoList> GetDocumentAsync()
+    {
+        var response = await _container.ReadItemAsync<TodoList>(DocumentId, new Microsoft.Azure.Cosmos.PartitionKey(PartitionKey));
+        return response.Resource;
+    }
+
+    private async Task SaveDocumentAsync(TodoList doc)
+    {
+        await _container.UpsertItemAsync(doc, new Microsoft.Azure.Cosmos.PartitionKey(PartitionKey));
     }
 
     public async Task<List<TodoItem>> GetAllAsync()
     {
-        var query = _container.GetItemLinqQueryable<TodoItem>()
-            .OrderBy(t => t.Order)
-            .ToFeedIterator();
-
-        var items = new List<TodoItem>();
-        while (query.HasMoreResults)
-        {
-            var response = await query.ReadNextAsync();
-            items.AddRange(response);
-        }
-        return items;
+        var doc = await GetDocumentAsync();
+        return doc.Items.OrderBy(t => t.Order).ToList();
     }
 
     public async Task AddAsync(string title)
     {
         if (string.IsNullOrWhiteSpace(title)) return;
 
-        var all = await GetAllAsync();
-        var maxOrder = all.Count > 0 ? all.Max(t => t.Order) : 0;
+        var doc = await GetDocumentAsync();
+        var maxOrder = doc.Items.Count > 0 ? doc.Items.Max(t => t.Order) : 0;
 
-        var item = new TodoItem
+        doc.Items.Add(new TodoItem
         {
             Title = title.Trim(),
             Order = maxOrder + 1
-        };
+        });
 
-        await _container.CreateItemAsync(item, new PartitionKey(item.Id.ToString()));
+        await SaveDocumentAsync(doc);
     }
 
     public async Task SetStatusAsync(Guid id, TodoStatus status)
     {
-        var item = await GetItemAsync(id);
+        var doc = await GetDocumentAsync();
+        var item = doc.Items.FirstOrDefault(t => t.Id == id);
         if (item != null)
         {
             item.Status = status;
-            await _container.UpsertItemAsync(item, new PartitionKey(id.ToString()));
+            await SaveDocumentAsync(doc);
         }
     }
 
     public async Task ReorderAsync(List<Guid> orderedIds)
     {
-        var items = new List<TodoItem>();
-        foreach (var id in orderedIds)
-        {
-            var item = await GetItemAsync(id);
-            if (item != null) items.Add(item);
-        }
+        var doc = await GetDocumentAsync();
+        var items = orderedIds
+            .Select(id => doc.Items.FirstOrDefault(t => t.Id == id))
+            .Where(t => t != null)
+            .ToList();
 
-        var orderSlots = items.Select(t => t.Order).OrderBy(o => o).ToList();
+        var orderSlots = items.Select(t => t!.Order).OrderBy(o => o).ToList();
 
+        bool changed = false;
         for (int i = 0; i < items.Count && i < orderSlots.Count; i++)
         {
-            if (items[i].Order != orderSlots[i])
+            if (items[i]!.Order != orderSlots[i])
             {
-                items[i].Order = orderSlots[i];
-                await _container.UpsertItemAsync(items[i], new PartitionKey(items[i].Id.ToString()));
+                items[i]!.Order = orderSlots[i];
+                changed = true;
             }
         }
+
+        if (changed)
+            await SaveDocumentAsync(doc);
     }
 
     public async Task DeleteAsync(Guid id)
     {
-        try
-        {
-            await _container.DeleteItemAsync<TodoItem>(id.ToString(), new PartitionKey(id.ToString()));
-        }
-        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound) { }
-    }
-
-    private async Task<TodoItem?> GetItemAsync(Guid id)
-    {
-        try
-        {
-            var response = await _container.ReadItemAsync<TodoItem>(id.ToString(), new PartitionKey(id.ToString()));
-            return response.Resource;
-        }
-        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-        {
-            return null;
-        }
+        var doc = await GetDocumentAsync();
+        doc.Items.RemoveAll(t => t.Id == id);
+        await SaveDocumentAsync(doc);
     }
 }
