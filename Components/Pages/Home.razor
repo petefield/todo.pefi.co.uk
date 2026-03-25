@@ -3,6 +3,7 @@
 @using TodoApp.Models
 @using TodoApp.Services
 @inject TodoService TodoService
+@inject PushNotificationService PushNotificationService
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
@@ -22,7 +23,21 @@
         font-weight: 700;
         padding: 0.75rem 0;
         color: #333;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
     }
+    .btn-notify {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0.25rem;
+        line-height: 1;
+        opacity: 0.6;
+    }
+    .btn-notify:hover { opacity: 1; }
+    .btn-notify.active { opacity: 1; }
     .todo-input-row {
         display: flex;
         gap: 0.5rem;
@@ -169,6 +184,7 @@
             font-size: 2.2rem;
             padding: 1.5rem 0;
         }
+        .btn-notify { font-size: 1.8rem; }
         .todo-input-row {
             gap: 0.75rem;
             margin-bottom: 1.5rem;
@@ -249,7 +265,17 @@
 </style>
 
 <div class="todo-app">
-    <div class="todo-header">📝 To Do's</div>
+    <div class="todo-header">
+        <span>📝 To Do's</span>
+        @if (notificationState != "unsupported")
+        {
+            <button class="btn-notify @(notificationState == "subscribed" ? "active" : "")"
+                    title="@(notificationState == "subscribed" ? "Disable daily reminder" : "Enable daily reminder")"
+                    @onclick="ToggleNotifications">
+                @(notificationState == "subscribed" ? "🔔" : "🔕")
+            </button>
+        }
+    </div>
 
     <div class="todo-input-row">
         <input @bind="newTitle" @bind:event="oninput" @onkeydown="HandleKeyDown"
@@ -332,6 +358,7 @@
     private HashSet<TodoStatus> filters = new();
     private ElementReference listElement;
     private DotNetObjectReference<Home>? dotNetRef;
+    private string notificationState = "default";
 
     private IEnumerable<TodoItem> FilteredItems
     {
@@ -358,10 +385,30 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender)
+        {
+            notificationState = await JS.InvokeAsync<string>("getNotificationState");
+            StateHasChanged();
+        }
         if (FilteredItems.Any())
         {
             await JS.InvokeVoidAsync("initSortable", listElement, dotNetRef);
         }
+    }
+
+    private async Task ToggleNotifications()
+    {
+        if (notificationState == "subscribed")
+        {
+            await JS.InvokeVoidAsync("unsubscribeFromNotifications");
+        }
+        else
+        {
+            var publicKey = PushNotificationService.GetPublicKey();
+            await JS.InvokeAsync<bool>("subscribeToNotifications", publicKey);
+        }
+        notificationState = await JS.InvokeAsync<string>("getNotificationState");
+        StateHasChanged();
     }
 
     [JSInvokable]

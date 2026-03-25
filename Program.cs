@@ -1,5 +1,6 @@
 using Microsoft.Azure.Cosmos;
 using TodoApp.Components;
+using TodoApp.Models;
 using TodoApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,6 +23,8 @@ var cosmosClientOptions = new CosmosClientOptions
 var cosmosClient = new CosmosClient(cosmosConnectionString, cosmosClientOptions);
 builder.Services.AddSingleton(cosmosClient);
 builder.Services.AddSingleton<TodoService>();
+builder.Services.AddSingleton<PushNotificationService>();
+builder.Services.AddHostedService<DailyNotificationService>();
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -55,6 +58,22 @@ if (!app.Environment.IsDevelopment())
 
 
 app.UseAntiforgery();
+
+// Push notification endpoints
+app.MapGet("/api/push/vapid-public-key", (PushNotificationService pushService) =>
+    Results.Ok(pushService.GetPublicKey()));
+
+app.MapPost("/api/push/subscribe", async (PushSubscriptionInfo subscription, PushNotificationService pushService) =>
+{
+    await pushService.SaveSubscriptionAsync(subscription);
+    return Results.Ok();
+});
+
+app.MapDelete("/api/push/subscribe", async (PushSubscriptionInfo subscription, PushNotificationService pushService) =>
+{
+    await pushService.RemoveSubscriptionAsync(subscription.Endpoint);
+    return Results.Ok();
+});
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()

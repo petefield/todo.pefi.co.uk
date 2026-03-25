@@ -8,6 +8,35 @@ self.addEventListener('activate', event => {
     event.waitUntil(clients.claim());
 });
 
+self.addEventListener('push', event => {
+    let data = { title: "📝 To Do's", body: 'You have to dos remaining.' };
+    if (event.data) {
+        try { data = JSON.parse(event.data.text()); } catch { }
+    }
+    event.waitUntil(
+        self.registration.showNotification(data.title, {
+            body: data.body,
+            icon: '/icon-192.png',
+            badge: '/icon-192.png',
+            tag: 'daily-todo-reminder',
+            renotify: true
+        })
+    );
+});
+
+self.addEventListener('notificationclick', event => {
+    event.notification.close();
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+            for (const client of clientList) {
+                if (client.url.includes(self.location.origin) && 'focus' in client)
+                    return client.focus();
+            }
+            return clients.openWindow('/');
+        })
+    );
+});
+
 self.addEventListener('fetch', event => {
     // Network-first strategy: Blazor Server needs a live connection,
     // but we cache static assets as a fallback for faster loads
