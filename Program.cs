@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using pefi.persistence;
 using TodoApp.Components;
 using TodoApp.Models;
@@ -41,7 +42,7 @@ app.MapPost("/api/push/subscribe", async (PushSubscriptionInfo subscription, Pus
     return Results.Ok();
 });
 
-app.MapDelete("/api/push/subscribe", async (PushSubscriptionInfo subscription, PushNotificationService pushService) =>
+app.MapDelete("/api/push/subscribe", async ([FromBody] PushSubscriptionInfo subscription, [FromServices] PushNotificationService pushService) =>
 {
     await pushService.RemoveSubscriptionAsync(subscription.Endpoint);
     return Results.Ok();
