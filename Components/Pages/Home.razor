@@ -678,7 +678,7 @@
 <!-- Modal -->
 @if (showModal)
 {
-    <div class="modal-backdrop" @onclick="CloseModal">
+    <div class="modal-backdrop" @onclick="HandleBackdropClick">
         <div class="modal" @onclick:stopPropagation="true">
             <div class="modal-handle"></div>
             <div class="modal-title">New Task</div>
@@ -724,6 +724,7 @@
     private string notificationState = "default";
     private bool showModal = false;
     private bool showModalNotes = false;
+    private bool modalJustOpened = false;
 
     private IEnumerable<TodoItem> FilteredItems
     {
@@ -771,11 +772,18 @@
         newDescription = "";
         showModalNotes = false;
         showModal = true;
+        modalJustOpened = true;
     }
 
     private void CloseModal()
     {
         showModal = false;
+    }
+
+    private void HandleBackdropClick()
+    {
+        if (modalJustOpened) { modalJustOpened = false; return; }
+        CloseModal();
     }
 
     private async Task ToggleNotifications()
