@@ -386,7 +386,7 @@
     .btn-fab-icon { font-size: 1.2rem; line-height: 1; }
 
     /* ── Modal ── */
-    .modal-backdrop {
+    .task-overlay {
         position: fixed;
         inset: 0;
         background: rgba(15,23,42,0.5);
@@ -399,7 +399,7 @@
     }
     @@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-    .modal {
+    .task-sheet {
         background: var(--surface);
         border-radius: var(--radius-lg) var(--radius-lg) 0 0;
         padding: 1.5rem 1.25rem 2.5rem;
@@ -521,8 +521,8 @@
         .todo-actions { padding: 0 0.5rem; gap: 0.15rem; }
         .todo-actions button { width: 40px; height: 40px; font-size: 1.05rem; }
         .btn-fab { bottom: 2.5rem; right: 2.5rem; }
-        .modal-backdrop { align-items: center; padding: 1rem; }
-        .modal {
+        .task-overlay { align-items: center; padding: 1rem; }
+        .task-sheet {
             border-radius: var(--radius-lg);
             padding: 2rem;
             max-width: 480px;
@@ -678,8 +678,8 @@
 <!-- Modal -->
 @if (showModal)
 {
-    <div class="modal-backdrop" @onclick="HandleBackdropClick">
-        <div class="modal" @onclick:stopPropagation="true">
+    <div class="task-overlay" @onclick="HandleBackdropClick">
+        <div class="task-sheet" @onclick:stopPropagation="true">
             <div class="modal-handle"></div>
             <div class="modal-title">New Task</div>
 
