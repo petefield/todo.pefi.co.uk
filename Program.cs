@@ -48,6 +48,12 @@ app.MapDelete("/api/push/subscribe", async ([FromBody] PushSubscriptionInfo subs
     return Results.Ok();
 });
 
+app.MapPost("/api/push/test", async ([FromServices] PushNotificationService pushService) =>
+{
+    await pushService.SendNotificationToAllAsync("🔔 Test", "Push notifications are working!");
+    return Results.Ok();
+});
+
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
