@@ -7,7 +7,7 @@
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
-<PageTitle>To Do's</PageTitle>
+<PageTitle>My Tasks</PageTitle>
 
 <style>
     :root {
@@ -22,10 +22,8 @@
         --text-muted: #94a3b8;
         --status-done-bg: #f0fdf4;
         --status-done-border: #bbf7d0;
-        --status-done-text: #166534;
         --status-progress-bg: #fffbeb;
         --status-progress-border: #fde68a;
-        --status-progress-text: #92400e;
         --status-cancelled-bg: #f8fafc;
         --status-cancelled-border: #e2e8f0;
         --radius-sm: 8px;
@@ -41,7 +39,7 @@
     .todo-app {
         max-width: 720px;
         margin: 0 auto;
-        padding: 1.25rem 1rem 4rem;
+        padding: 1.25rem 1rem 6rem;
         font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
         -webkit-tap-highlight-color: transparent;
         user-select: none;
@@ -93,46 +91,6 @@
     }
     .btn-notify:hover { background: var(--accent-light); border-color: var(--accent); }
     .btn-notify.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
-
-    /* ── Input ── */
-    .todo-input-card {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        box-shadow: var(--shadow-sm);
-        padding: 0.5rem;
-        display: flex;
-        gap: 0.5rem;
-        margin-bottom: 1.25rem;
-    }
-    .todo-input-card input {
-        flex: 1;
-        font-size: 0.975rem;
-        padding: 0.65rem 0.85rem;
-        border: none;
-        outline: none;
-        background: transparent;
-        color: var(--text-primary);
-        font-family: inherit;
-    }
-    .todo-input-card input::placeholder { color: var(--text-muted); }
-    .btn-add {
-        font-size: 0.9rem;
-        font-weight: 600;
-        padding: 0.65rem 1.25rem;
-        border: none;
-        border-radius: var(--radius-md);
-        background: var(--accent);
-        color: white;
-        cursor: pointer;
-        transition: background 0.15s, transform 0.1s;
-        white-space: nowrap;
-        font-family: inherit;
-        letter-spacing: 0.01em;
-    }
-    .btn-add:hover { background: var(--accent-hover); }
-    .btn-add:active { transform: scale(0.97); }
-    .btn-add:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
 
     /* ── Search ── */
     .todo-search {
@@ -202,28 +160,21 @@
     .todo-list { display: flex; flex-direction: column; gap: 0.4rem; }
 
     .todo-item {
-        display: flex;
-        align-items: center;
         background: var(--surface);
         border: 1px solid var(--border);
         border-radius: var(--radius-md);
         box-shadow: var(--shadow-sm);
         overflow: hidden;
-        transition: box-shadow 0.15s, transform 0.15s;
+        transition: box-shadow 0.15s;
     }
     .todo-item:hover { box-shadow: var(--shadow-md); }
+    .todo-item.done { background: var(--status-done-bg); border-color: var(--status-done-border); }
+    .todo-item.inprogress { background: var(--status-progress-bg); border-color: var(--status-progress-border); }
+    .todo-item.cancelled { background: var(--status-cancelled-bg); border-color: var(--status-cancelled-border); }
 
-    .todo-item.done {
-        background: var(--status-done-bg);
-        border-color: var(--status-done-border);
-    }
-    .todo-item.inprogress {
-        background: var(--status-progress-bg);
-        border-color: var(--status-progress-border);
-    }
-    .todo-item.cancelled {
-        background: var(--status-cancelled-bg);
-        border-color: var(--status-cancelled-border);
+    .todo-item-main {
+        display: flex;
+        align-items: center;
     }
 
     .drag-handle {
@@ -235,7 +186,7 @@
         font-size: 1rem;
         touch-action: none;
         align-self: stretch;
-        opacity: 0.5;
+        opacity: 0.4;
         transition: opacity 0.15s;
     }
     .todo-item:hover .drag-handle { opacity: 1; }
@@ -255,16 +206,31 @@
 
     .todo-text {
         flex: 1;
-        padding: 0.85rem 0.6rem 0.85rem 0.4rem;
+        padding: 0.85rem 0.4rem 0.85rem 0.4rem;
         font-size: 0.95rem;
         color: var(--text-primary);
         word-break: break-word;
+        min-width: 0;
         display: flex;
         flex-direction: column;
         gap: 0.2rem;
-        min-width: 0;
+    }
+    .todo-title-row {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
     }
     .todo-title { line-height: 1.4; }
+    .todo-notes-indicator {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        background: var(--surface-raised);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 0.05rem 0.35rem;
+        flex-shrink: 0;
+        letter-spacing: 0.02em;
+    }
     .todo-age {
         font-size: 0.72rem;
         color: var(--text-muted);
@@ -276,6 +242,46 @@
         color: var(--text-muted);
     }
     .todo-item.inprogress .todo-title { font-weight: 600; }
+
+    /* ── Notes expand ── */
+    .todo-notes-panel {
+        border-top: 1px solid var(--border);
+        padding: 0.75rem 0.75rem 0.75rem 2.5rem;
+        background: rgba(0,0,0,0.015);
+        user-select: text;
+    }
+    .todo-notes-textarea {
+        width: 100%;
+        font-size: 0.875rem;
+        font-family: inherit;
+        color: var(--text-primary);
+        background: transparent;
+        border: none;
+        outline: none;
+        resize: none;
+        line-height: 1.6;
+        min-height: 60px;
+        padding: 0;
+    }
+    .todo-notes-textarea::placeholder { color: var(--text-muted); }
+    .todo-notes-footer {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 0.5rem;
+    }
+    .btn-save-notes {
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 0.3rem 0.75rem;
+        border: none;
+        border-radius: var(--radius-sm);
+        background: var(--accent);
+        color: white;
+        cursor: pointer;
+        font-family: inherit;
+        transition: background 0.15s;
+    }
+    .btn-save-notes:hover { background: var(--accent-hover); }
 
     .todo-actions {
         display: flex;
@@ -301,7 +307,9 @@
     .btn-inprogress { color: #f59e0b; }
     .btn-cancel { color: #f87171; }
     .btn-undo { color: var(--text-muted); }
-    .todo-actions button:hover { background: var(--surface-raised); color: var(--text-primary); }
+    .btn-expand { color: var(--text-muted); font-size: 0.75rem; }
+    .btn-expand.open { color: var(--accent); }
+    .todo-actions button:hover { background: var(--surface-raised); }
     .btn-done:hover { background: #f0fdf4 !important; color: #16a34a !important; }
     .btn-inprogress:hover { background: #fffbeb !important; color: #d97706 !important; }
     .btn-cancel:hover { background: #fef2f2 !important; color: #dc2626 !important; }
@@ -335,11 +343,7 @@
         font-size: 0.8rem;
         color: var(--text-muted);
     }
-    .summary-dot {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-    }
+    .summary-dot { width: 6px; height: 6px; border-radius: 50%; }
     .summary-dot.pending { background: #94a3b8; }
     .summary-dot.inprogress { background: #f59e0b; }
     .summary-dot.done { background: #22c55e; }
@@ -348,29 +352,185 @@
 
     /* ── Sortable ── */
     .sortable-ghost { opacity: 0.25; }
-    .sortable-chosen {
-        box-shadow: var(--shadow-lg) !important;
-        transform: scale(1.015);
+    .sortable-chosen { box-shadow: var(--shadow-lg) !important; transform: scale(1.015); }
+
+    /* ── FAB ── */
+    .btn-fab {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        height: 52px;
+        padding: 0 1.5rem;
+        border-radius: 99px;
+        background: var(--accent);
+        color: white;
+        border: none;
+        font-size: 0.95rem;
+        font-weight: 600;
+        font-family: inherit;
+        letter-spacing: 0.01em;
+        cursor: pointer;
+        box-shadow: 0 4px 16px rgba(99,102,241,0.45);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+        z-index: 100;
     }
+    .btn-fab:hover {
+        background: var(--accent-hover);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(99,102,241,0.55);
+    }
+    .btn-fab:active { transform: scale(0.97); }
+    .btn-fab-icon { font-size: 1.2rem; line-height: 1; }
+
+    /* ── Modal ── */
+    .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(15,23,42,0.5);
+        backdrop-filter: blur(4px);
+        z-index: 200;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        animation: fadeIn 0.15s ease;
+    }
+    @@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .modal {
+        background: var(--surface);
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        padding: 1.5rem 1.25rem 2.5rem;
+        width: 100%;
+        max-width: 720px;
+        box-shadow: 0 -8px 40px rgba(0,0,0,0.12);
+        animation: slideUp 0.22s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    @@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+    .modal-handle {
+        width: 36px;
+        height: 4px;
+        background: var(--border);
+        border-radius: 99px;
+        margin: 0 auto 1.25rem;
+    }
+    .modal-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        letter-spacing: -0.01em;
+        margin-bottom: 1.1rem;
+    }
+
+    .modal-input {
+        width: 100%;
+        font-size: 1rem;
+        padding: 0.8rem 1rem;
+        border: 1.5px solid var(--border);
+        border-radius: var(--radius-md);
+        outline: none;
+        background: var(--surface-raised);
+        color: var(--text-primary);
+        font-family: inherit;
+        transition: border-color 0.15s, box-shadow 0.15s;
+        margin-bottom: 0.75rem;
+    }
+    .modal-input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+        background: var(--surface);
+    }
+    .modal-input::placeholder { color: var(--text-muted); }
+
+    /* ── Notes toggle in modal ── */
+    .modal-notes-toggle {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: none;
+        border: none;
+        padding: 0.3rem 0;
+        font-size: 0.82rem;
+        font-weight: 500;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-family: inherit;
+        margin-bottom: 0.75rem;
+        transition: color 0.15s;
+    }
+    .modal-notes-toggle:hover { color: var(--accent); }
+    .modal-notes-toggle.open { color: var(--accent); }
+
+    .modal-notes-textarea {
+        width: 100%;
+        font-size: 0.9rem;
+        font-family: inherit;
+        color: var(--text-primary);
+        background: var(--surface-raised);
+        border: 1.5px solid var(--border);
+        border-radius: var(--radius-md);
+        outline: none;
+        resize: none;
+        line-height: 1.6;
+        padding: 0.75rem 1rem;
+        min-height: 90px;
+        transition: border-color 0.15s, box-shadow 0.15s;
+        margin-bottom: 0.75rem;
+    }
+    .modal-notes-textarea:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+        background: var(--surface);
+    }
+    .modal-notes-textarea::placeholder { color: var(--text-muted); }
+
+    .btn-modal-add {
+        width: 100%;
+        font-size: 1rem;
+        font-weight: 600;
+        padding: 0.9rem;
+        border: none;
+        border-radius: var(--radius-md);
+        background: var(--accent);
+        color: white;
+        cursor: pointer;
+        transition: background 0.15s, transform 0.1s;
+        font-family: inherit;
+        letter-spacing: 0.01em;
+    }
+    .btn-modal-add:hover { background: var(--accent-hover); }
+    .btn-modal-add:active { transform: scale(0.98); }
+    .btn-modal-add:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
 
     /* ── Desktop ── */
     @@media (min-width: 768px) {
-        .todo-app { padding: 2rem 1.5rem 4rem; }
+        .todo-app { padding: 2rem 1.5rem 6rem; }
         .todo-header { padding: 2rem 0 1.75rem; }
         .todo-header-title h1 { font-size: 2rem; }
         .btn-notify { width: 44px; height: 44px; font-size: 1.2rem; }
-        .todo-input-card { padding: 0.6rem; }
-        .todo-input-card input { font-size: 1.05rem; padding: 0.75rem 1rem; }
-        .btn-add { font-size: 0.95rem; padding: 0.75rem 1.5rem; }
         .todo-search input { font-size: 0.95rem; padding: 0.75rem 1rem 0.75rem 2.5rem; }
         .todo-filters button { padding: 0.45rem 1.1rem; font-size: 0.875rem; }
         .todo-list { gap: 0.5rem; }
         .todo-item { border-radius: var(--radius-lg); }
         .drag-handle { padding: 0 0.6rem 0 1rem; }
-        .todo-text { padding: 1rem 0.75rem 1rem 0.5rem; font-size: 1rem; }
+        .todo-text { padding: 1rem 0.5rem 1rem 0.5rem; font-size: 1rem; }
         .todo-age { font-size: 0.78rem; }
         .todo-actions { padding: 0 0.5rem; gap: 0.15rem; }
         .todo-actions button { width: 40px; height: 40px; font-size: 1.05rem; }
+        .btn-fab { bottom: 2.5rem; right: 2.5rem; }
+        .modal-backdrop { align-items: center; padding: 1rem; }
+        .modal {
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            max-width: 480px;
+            animation: scaleIn 0.18s cubic-bezier(0.32, 0.72, 0, 1);
+        }
+        @@keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-handle { display: none; }
+        .todo-notes-panel { padding-left: 3rem; }
     }
 </style>
 
@@ -391,12 +551,6 @@
                 @(notificationState == "subscribed" ? "🔔" : "🔕")
             </button>
         }
-    </div>
-
-    <div class="todo-input-card">
-        <input @bind="newTitle" @bind:event="oninput" @onkeydown="HandleKeyDown"
-               placeholder="Add a new task…" inputmode="text" />
-        <button class="btn-add" @onclick="AddTodo" disabled="@string.IsNullOrWhiteSpace(newTitle)">Add</button>
     </div>
 
     @if (items.Any())
@@ -420,7 +574,7 @@
         <div class="todo-empty">
             <div class="todo-empty-icon">✓</div>
             <div class="todo-empty-text">
-                @if (!items.Any()) { <span>No tasks yet — add one above</span> }
+                @if (!items.Any()) { <span>No tasks yet — tap + New Task to get started</span> }
                 else { <span>Nothing matches your filters</span> }
             </div>
         </div>
@@ -431,31 +585,58 @@
             @foreach (var item in FilteredItems)
             {
                 <div class="todo-item @item.Status.ToString().ToLower()" data-id="@item.Id">
-                    <div class="drag-handle">⠿</div>
-                    <div class="todo-status-dot"></div>
+                    <div class="todo-item-main">
+                        <div class="drag-handle">⠿</div>
+                        <div class="todo-status-dot"></div>
 
-                    <div class="todo-text">
-                        <span class="todo-title">@item.Title</span>
-                        <span class="todo-age">@FormatAge(item.CreatedAt)</span>
+                        <div class="todo-text">
+                            <div class="todo-title-row">
+                                <span class="todo-title">@item.Title</span>
+                                @if (!string.IsNullOrWhiteSpace(item.Description))
+                                {
+                                    <span class="todo-notes-indicator">notes</span>
+                                }
+                            </div>
+                            <span class="todo-age">@FormatAge(item.CreatedAt)</span>
+                        </div>
+
+                        <div class="todo-actions">
+                            <button class="btn-expand @(expandedItems.Contains(item.Id) ? "open" : "")"
+                                    @onclick="() => ToggleExpand(item.Id)"
+                                    title="@(expandedItems.Contains(item.Id) ? "Hide notes" : "Show notes")">
+                                @(expandedItems.Contains(item.Id) ? "▲" : "▼")
+                            </button>
+                            @if (item.Status == TodoStatus.Pending)
+                            {
+                                <button class="btn-inprogress" @onclick="() => SetStatus(item.Id, TodoStatus.InProgress)" title="Start">▶</button>
+                                <button class="btn-done" @onclick="() => SetStatus(item.Id, TodoStatus.Done)" title="Mark done">✓</button>
+                                <button class="btn-cancel" @onclick="() => SetStatus(item.Id, TodoStatus.Cancelled)" title="Cancel">✕</button>
+                            }
+                            else if (item.Status == TodoStatus.InProgress)
+                            {
+                                <button class="btn-done" @onclick="() => SetStatus(item.Id, TodoStatus.Done)" title="Mark done">✓</button>
+                                <button class="btn-undo" @onclick="() => SetStatus(item.Id, TodoStatus.Pending)" title="Back to pending">↩</button>
+                            }
+                            else
+                            {
+                                <button class="btn-undo" @onclick="() => SetStatus(item.Id, TodoStatus.Pending)" title="Reactivate">↩</button>
+                            }
+                        </div>
                     </div>
 
-                    <div class="todo-actions">
-                        @if (item.Status == TodoStatus.Pending)
-                        {
-                            <button class="btn-inprogress" @onclick="() => SetStatus(item.Id, TodoStatus.InProgress)" title="Start">▶</button>
-                            <button class="btn-done" @onclick="() => SetStatus(item.Id, TodoStatus.Done)" title="Mark done">✓</button>
-                            <button class="btn-cancel" @onclick="() => SetStatus(item.Id, TodoStatus.Cancelled)" title="Cancel">✕</button>
-                        }
-                        else if (item.Status == TodoStatus.InProgress)
-                        {
-                            <button class="btn-done" @onclick="() => SetStatus(item.Id, TodoStatus.Done)" title="Mark done">✓</button>
-                            <button class="btn-undo" @onclick="() => SetStatus(item.Id, TodoStatus.Pending)" title="Back to pending">↩</button>
-                        }
-                        else
-                        {
-                            <button class="btn-undo" @onclick="() => SetStatus(item.Id, TodoStatus.Pending)" title="Reactivate">↩</button>
-                        }
-                    </div>
+                    @if (expandedItems.Contains(item.Id))
+                    {
+                        <div class="todo-notes-panel">
+                            <textarea class="todo-notes-textarea"
+                                      placeholder="Add notes…"
+                                      rows="3"
+                                      value="@item.Description"
+                                      @oninput="e => item.Description = e.Value?.ToString() ?? string.Empty"></textarea>
+                            <div class="todo-notes-footer">
+                                <button class="btn-save-notes" @onclick="() => SaveNotes(item)">Save notes</button>
+                            </div>
+                        </div>
+                    }
                 </div>
             }
         </div>
@@ -488,14 +669,61 @@
     }
 </div>
 
+<!-- FAB -->
+<button class="btn-fab" @onclick="OpenModal">
+    <span class="btn-fab-icon">＋</span>
+    New Task
+</button>
+
+<!-- Modal -->
+@if (showModal)
+{
+    <div class="modal-backdrop" @onclick="CloseModal">
+        <div class="modal" @onclick:stopPropagation="true">
+            <div class="modal-handle"></div>
+            <div class="modal-title">New Task</div>
+
+            <input class="modal-input"
+                   @bind="newTitle"
+                   @bind:event="oninput"
+                   @onkeydown="HandleKeyDown"
+                   placeholder="What needs to be done?"
+                   inputmode="text"
+                   @ref="modalInputRef" />
+
+            <button class="modal-notes-toggle @(showModalNotes ? "open" : "")"
+                    @onclick="() => showModalNotes = !showModalNotes">
+                @(showModalNotes ? "▲" : "▼") &nbsp;@(showModalNotes ? "Hide notes" : "Add notes (optional)")
+            </button>
+
+            @if (showModalNotes)
+            {
+                <textarea class="modal-notes-textarea"
+                          @bind="newDescription"
+                          placeholder="Any extra details or notes…"
+                          rows="3"></textarea>
+            }
+
+            <button class="btn-modal-add" @onclick="AddTodo" disabled="@string.IsNullOrWhiteSpace(newTitle)">
+                Add Task
+            </button>
+        </div>
+    </div>
+}
+
 @code {
     private List<TodoItem> items = [];
     private string newTitle = "";
+    private string newDescription = "";
     private string searchQuery = "";
     private HashSet<TodoStatus> filters = new();
+    private HashSet<Guid> expandedItems = new();
     private ElementReference listElement;
+    private ElementReference modalInputRef;
     private DotNetObjectReference<Home>? dotNetRef;
     private string notificationState = "default";
+    private bool showModal = false;
+    private bool showModalNotes = false;
 
     private IEnumerable<TodoItem> FilteredItems
     {
@@ -531,14 +759,29 @@
         {
             await JS.InvokeVoidAsync("initSortable", listElement, dotNetRef);
         }
+        if (showModal)
+        {
+            try { await modalInputRef.FocusAsync(); } catch { }
+        }
+    }
+
+    private void OpenModal()
+    {
+        newTitle = "";
+        newDescription = "";
+        showModalNotes = false;
+        showModal = true;
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
     }
 
     private async Task ToggleNotifications()
     {
         if (notificationState == "subscribed")
-        {
             await JS.InvokeVoidAsync("unsubscribeFromNotifications");
-        }
         else
         {
             var publicKey = PushNotificationService.GetPublicKey();
@@ -562,14 +805,15 @@
     private async Task AddTodo()
     {
         if (string.IsNullOrWhiteSpace(newTitle)) return;
-        await TodoService.AddAsync(newTitle);
-        newTitle = "";
+        await TodoService.AddAsync(newTitle, newDescription);
+        showModal = false;
         await RefreshAsync();
     }
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter") await AddTodo();
+        if (e.Key == "Enter" && !showModalNotes) await AddTodo();
+        if (e.Key == "Escape") CloseModal();
     }
 
     private void ToggleFilter(TodoStatus status)
@@ -580,14 +824,23 @@
 
     private void ToggleAll() => filters.Clear();
 
+    private void ToggleExpand(Guid id)
+    {
+        if (!expandedItems.Remove(id))
+            expandedItems.Add(id);
+    }
+
+    private async Task SaveNotes(TodoItem item)
+    {
+        await TodoService.UpdateDescriptionAsync(item.Id, item.Description);
+    }
+
     private async Task SetStatus(Guid id, TodoStatus status)
     {
         await TodoService.SetStatusAsync(id, status);
         await RefreshAsync();
         if (status == TodoStatus.Done)
-        {
             await JS.InvokeVoidAsync("celebrate");
-        }
     }
 
     private static string FormatAge(DateTime createdAt)

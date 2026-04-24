@@ -40,7 +40,7 @@ public class TodoService
         return doc.Items.OrderBy(t => t.Order).ToList();
     }
 
-    public async Task AddAsync(string title)
+    public async Task AddAsync(string title, string description = "")
     {
         if (string.IsNullOrWhiteSpace(title)) return;
 
@@ -50,6 +50,7 @@ public class TodoService
         doc.Items.Add(new TodoItem
         {
             Title = title.Trim(),
+            Description = description.Trim(),
             Order = maxOrder + 1
         });
 
@@ -89,6 +90,17 @@ public class TodoService
 
         if (changed)
             await SaveDocumentAsync(doc);
+    }
+
+    public async Task UpdateDescriptionAsync(Guid id, string description)
+    {
+        var doc = await GetDocumentAsync();
+        var item = doc.Items.FirstOrDefault(t => t.Id == id);
+        if (item != null)
+        {
+            item.Description = description.Trim();
+            await SaveDocumentAsync(doc);
+        }
     }
 
     public async Task DeleteAsync(Guid id)
