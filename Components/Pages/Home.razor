@@ -280,9 +280,10 @@
         color: white;
         cursor: pointer;
         font-family: inherit;
-        transition: background 0.15s;
+        transition: background 0.15s, transform 0.15s;
     }
     .btn-save-notes:hover { background: var(--accent-hover); }
+    .btn-save-notes.saved { background: #22c55e; transform: scale(1.05); cursor: default; }
 
     .todo-actions {
         display: flex;
@@ -626,9 +627,20 @@
                                       rows="3"
                                       value="@item.Description"
                                       @oninput="e => item.Description = e.Value?.ToString() ?? string.Empty"></textarea>
-                            <div class="todo-notes-footer">
-                                <button class="btn-save-notes" @onclick="() => SaveNotes(item)">Save notes</button>
-                            </div>
+                            @{
+                                var isDirty = (item.Description ?? string.Empty) != (savedDescriptions.GetValueOrDefault(item.Id) ?? string.Empty);
+                                var saveLabel = savedItems.Contains(item.Id) ? "Saved" : "Save notes";
+                                var savedClass = savedItems.Contains(item.Id) ? "saved" : "";
+                            }
+                            @if (isDirty || savedItems.Contains(item.Id))
+                            {
+                                <div class="todo-notes-footer">
+                                    <button class="btn-save-notes @savedClass"
+                                            @onclick="() => SaveNotes(item)">
+                                        @saveLabel
+                                    </button>
+                                </div>
+                            }
                         </div>
                     }
                 </div>
@@ -712,6 +724,8 @@
     private string searchQuery = "";
     private HashSet<TodoStatus> filters = new();
     private HashSet<Guid> expandedItems = new();
+    private HashSet<Guid> savedItems = new();
+    private Dictionary<Guid, string> savedDescriptions = new();
     private ElementReference listElement;
     private ElementReference modalInputRef;
     private DotNetObjectReference<Home>? dotNetRef;
@@ -828,13 +842,28 @@
 
     private void ToggleExpand(Guid id)
     {
-        if (!expandedItems.Remove(id))
+        if (expandedItems.Remove(id))
+        {
+            savedDescriptions.Remove(id);
+        }
+        else
+        {
             expandedItems.Add(id);
+            var item = items.FirstOrDefault(i => i.Id == id);
+            if (item != null)
+                savedDescriptions[id] = item.Description ?? string.Empty;
+        }
     }
 
     private async Task SaveNotes(TodoItem item)
     {
         await TodoService.UpdateDescriptionAsync(item.Id, item.Description);
+        savedDescriptions[item.Id] = item.Description ?? string.Empty;
+        savedItems.Add(item.Id);
+        StateHasChanged();
+        await Task.Delay(2000);
+        savedItems.Remove(item.Id);
+        StateHasChanged();
     }
 
     private async Task SetStatus(Guid id, TodoStatus status)
@@ -848,10 +877,11 @@
     private static string FormatAge(DateTime createdAt)
     {
         var span = DateTime.UtcNow - createdAt;
-        if (span.TotalMinutes < 1) return "just now";
-        if (span.TotalDays >= 1)
+        if (span.TotalMinutes >= 1 && span.TotalDays >= 1)
             return $"{(int)span.TotalDays}d {span.Hours:D2}:{span.Minutes:D2}";
-        return $"{span.Hours:D2}:{span.Minutes:D2}";
+        if (span.TotalMinutes >= 1)
+            return $"{span.Hours:D2}:{span.Minutes:D2}";
+        return "just now";
     }
 
     public async ValueTask DisposeAsync()
