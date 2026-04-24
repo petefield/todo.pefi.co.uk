@@ -56,6 +56,8 @@ npx web-push generate-vapid-keys
 
 ## Deployment
 
+### Azure Web App
+
 Pushes to the `main` branch automatically build and deploy to the Azure Web App `pefi-todo` via the GitHub Actions workflow in [`.github/workflows/main_pefi-todo.yml`](.github/workflows/main_pefi-todo.yml).
 
 The workflow requires the following repository secrets to be configured:
@@ -63,6 +65,15 @@ The workflow requires the following repository secrets to be configured:
 - `AZUREAPPSERVICE_CLIENTID_*`
 - `AZUREAPPSERVICE_TENANTID_*`
 - `AZUREAPPSERVICE_SUBSCRIPTIONID_*`
+
+### Docker Hub
+
+Pushes to the `main` branch (and manual runs) also build the Docker image and push it to [`petefield/pefi.todo`](https://hub.docker.com/r/petefield/pefi.todo) via the GitHub Actions workflow in [`.github/workflows/docker-hub.yml`](.github/workflows/docker-hub.yml).
+
+The workflow requires the following repository secrets to be configured:
+
+- `DOCKERHUB_USERNAME` – Docker Hub username
+- `DOCKERHUB_TOKEN` – Docker Hub access token
 
 ## License
 
