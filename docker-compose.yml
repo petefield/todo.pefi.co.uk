@@ -1,26 +1,19 @@
 services:
-  cosmosdb:
-    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview
-    command: ["--protocol", "https"]
+  mongodb:
+    image: mongo:8
     ports:
-      - "1235:1234"
-    environment:
-      AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE: "true"
-      AZURE_COSMOS_EMULATOR_IP_ADDRESS_OVERRIDE: "cosmosdb"
-      CERT_PATH: /certs/cosmosdb.pfx
-      CERT_SECRET: "cosmos-cert"
+      - "27017:27017"
     volumes:
-      - cosmos-data:/tmp/cosmos
-      - ./certs:/certs:ro
+      - mongo-data:/data/db
 
   todo-app:
     build: .
     ports:
       - "5080:8080"
     depends_on:
-      - cosmosdb
+      - mongodb
     environment:
-      CosmosDb__ConnectionString: "AccountEndpoint=https://cosmosdb:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=="
+      MongoDb__ConnectionString: "mongodb://mongodb:27017"
 
 volumes:
-  cosmos-data:
+  mongo-data:

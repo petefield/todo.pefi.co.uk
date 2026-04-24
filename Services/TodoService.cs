@@ -1,49 +1,37 @@
-using Microsoft.Azure.Cosmos;
+using pefi.persistence;
 using TodoApp.Models;
 
 namespace TodoApp.Services;
 
 public class TodoService
 {
-    private readonly Container _container;
+    private readonly IDataStore _store;
+    private readonly string _databaseName;
+    private readonly string _collectionName;
     private const string DocumentId = "todo-list";
-    private const string PartitionKey = "todo-list";
 
-    public TodoService(CosmosClient cosmosClient, IConfiguration configuration)
+    public TodoService(IDataStore store, IConfiguration configuration)
     {
-        var databaseName = configuration.GetValue<string>("CosmosDb:DatabaseName") ?? "TodoApp";
-        var containerName = configuration.GetValue<string>("CosmosDb:ContainerName") ?? "Todos";
-        _container = cosmosClient.GetContainer(databaseName, containerName);
-    }
-
-    public static async Task InitializeAsync(CosmosClient cosmosClient, IConfiguration configuration)
-    {
-        var databaseName = configuration.GetValue<string>("CosmosDb:DatabaseName") ?? "TodoApp";
-        var containerName = configuration.GetValue<string>("CosmosDb:ContainerName") ?? "Todos";
-        var database = await cosmosClient.CreateDatabaseIfNotExistsAsync(databaseName);
-        await database.Database.CreateContainerIfNotExistsAsync(containerName, "/id");
-
-        // Ensure the single document exists
-        var container = cosmosClient.GetContainer(databaseName, containerName);
-        try
-        {
-            await container.ReadItemAsync<TodoList>(DocumentId, new Microsoft.Azure.Cosmos.PartitionKey(PartitionKey));
-        }
-        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-        {
-            await container.CreateItemAsync(new TodoList(), new Microsoft.Azure.Cosmos.PartitionKey(PartitionKey));
-        }
+        _store = store;
+        _databaseName = configuration.GetValue<string>("MongoDb:DatabaseName") ?? "TodoApp";
+        _collectionName = configuration.GetValue<string>("MongoDb:TodosCollection") ?? "todos";
     }
 
     private async Task<TodoList> GetDocumentAsync()
     {
-        var response = await _container.ReadItemAsync<TodoList>(DocumentId, new Microsoft.Azure.Cosmos.PartitionKey(PartitionKey));
-        return response.Resource;
+        var results = await _store.Get<TodoList>(_databaseName, _collectionName, t => t.Id == DocumentId);
+        var doc = results.FirstOrDefault();
+        if (doc == null)
+        {
+            doc = new TodoList { Id = DocumentId };
+            await _store.Add(_databaseName, _collectionName, doc);
+        }
+        return doc;
     }
 
     private async Task SaveDocumentAsync(TodoList doc)
     {
-        await _container.UpsertItemAsync(doc, new Microsoft.Azure.Cosmos.PartitionKey(PartitionKey));
+        await _store.Update<TodoList>(_databaseName, _collectionName, t => t.Id == DocumentId, doc);
     }
 
     public async Task<List<TodoItem>> GetAllAsync()

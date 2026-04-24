@@ -1,27 +1,18 @@
-using Microsoft.Azure.Cosmos;
+using pefi.persistence;
 using TodoApp.Components;
 using TodoApp.Models;
 using TodoApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Cosmos DB setup
-var cosmosConnectionString = builder.Configuration.GetValue<string>("CosmosDb:ConnectionString")
-    ?? throw new InvalidOperationException("CosmosDb:ConnectionString is required");
+// MongoDB setup
+var mongoConnectionString = builder.Configuration.GetValue<string>("MongoDb:ConnectionString")
+    ?? throw new InvalidOperationException("MongoDb:ConnectionString is required");
 
-var cosmosClientOptions = new CosmosClientOptions
+builder.Services.AddPeFiPersistance(options =>
 {
-    SerializerOptions = new CosmosSerializationOptions
-    {
-        PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
-    },
-    RequestTimeout = TimeSpan.FromSeconds(5),
-    ConnectionMode = ConnectionMode.Gateway,
-    LimitToEndpoint = true
-};
-
-var cosmosClient = new CosmosClient(cosmosConnectionString, cosmosClientOptions);
-builder.Services.AddSingleton(cosmosClient);
+    options.ConnectionString = mongoConnectionString;
+});
 builder.Services.AddSingleton<TodoService>();
 builder.Services.AddSingleton<PushNotificationService>();
 builder.Services.AddHostedService<DailyNotificationService>();
@@ -30,25 +21,6 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 var app = builder.Build();
-
-// Initialize Cosmos DB with retry for emulator startup
-var maxRetries = 30;
-Console.WriteLine("Starting Cosmos DB initialization...");
-for (int i = 0; i < maxRetries; i++)
-{
-    try
-    {
-        Console.WriteLine($"Cosmos DB init attempt {i + 1}/{maxRetries}...");
-        await TodoService.InitializeAsync(cosmosClient, app.Configuration);
-        Console.WriteLine("Cosmos DB initialized successfully!");
-        break;
-    }
-    catch (Exception ex) when (i < maxRetries - 1)
-    {
-        Console.WriteLine($"Waiting for Cosmos DB... attempt {i + 1}/{maxRetries}: {ex.Message}");
-        await Task.Delay(5000);
-    }
-}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

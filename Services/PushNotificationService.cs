@@ -1,4 +1,4 @@
-using Microsoft.Azure.Cosmos;
+using pefi.persistence;
 using TodoApp.Models;
 using WebPush;
 
@@ -6,18 +6,19 @@ namespace TodoApp.Services;
 
 public class PushNotificationService
 {
-    private readonly Container _container;
+    private readonly IDataStore _store;
+    private readonly string _databaseName;
+    private readonly string _collectionName;
     private readonly string _vapidPublicKey;
     private readonly string _vapidPrivateKey;
     private readonly string _vapidSubject;
     private const string DocumentId = "push-subscriptions";
-    private const string PartitionKey = "push-subscriptions";
 
-    public PushNotificationService(CosmosClient cosmosClient, IConfiguration configuration)
+    public PushNotificationService(IDataStore store, IConfiguration configuration)
     {
-        var databaseName = configuration.GetValue<string>("CosmosDb:DatabaseName") ?? "TodoApp";
-        var containerName = configuration.GetValue<string>("CosmosDb:ContainerName") ?? "Todos";
-        _container = cosmosClient.GetContainer(databaseName, containerName);
+        _store = store;
+        _databaseName = configuration.GetValue<string>("MongoDb:DatabaseName") ?? "TodoApp";
+        _collectionName = configuration.GetValue<string>("MongoDb:SubscriptionsCollection") ?? "pushSubscriptions";
 
         _vapidPublicKey = configuration.GetValue<string>("Vapid:PublicKey")
             ?? throw new InvalidOperationException("Vapid:PublicKey is required");
@@ -84,20 +85,18 @@ public class PushNotificationService
 
     private async Task<PushSubscriptionDocument> GetOrCreateDocumentAsync()
     {
-        try
+        var results = await _store.Get<PushSubscriptionDocument>(_databaseName, _collectionName, d => d.Id == DocumentId);
+        var doc = results.FirstOrDefault();
+        if (doc == null)
         {
-            var response = await _container.ReadItemAsync<PushSubscriptionDocument>(
-                DocumentId, new Microsoft.Azure.Cosmos.PartitionKey(PartitionKey));
-            return response.Resource;
+            doc = new PushSubscriptionDocument { Id = DocumentId };
+            await _store.Add(_databaseName, _collectionName, doc);
         }
-        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-        {
-            return new PushSubscriptionDocument();
-        }
+        return doc;
     }
 
     private async Task SaveDocumentAsync(PushSubscriptionDocument doc)
     {
-        await _container.UpsertItemAsync(doc, new Microsoft.Azure.Cosmos.PartitionKey(PartitionKey));
+        await _store.Update<PushSubscriptionDocument>(_databaseName, _collectionName, d => d.Id == DocumentId, doc);
     }
 }

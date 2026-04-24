@@ -1,6 +1,6 @@
 # todo.pefi.co.uk
 
-A personal todo app built with Blazor Server and Azure Cosmos DB, deployed to [todo.pefi.co.uk](https://todo.pefi.co.uk).
+A personal todo app built with Blazor Server and MongoDB, deployed to [todo.pefi.co.uk](https://todo.pefi.co.uk).
 
 ## Features
 
@@ -13,7 +13,7 @@ A personal todo app built with Blazor Server and Azure Cosmos DB, deployed to [t
 ## Tech Stack
 
 - **Framework:** ASP.NET Core / Blazor Server (.NET 9)
-- **Database:** Azure Cosmos DB (single-document pattern)
+- **Database:** MongoDB via the [pefi.persistence](https://www.nuget.org/packages/pefi.persistence) library
 - **Push Notifications:** Web Push (VAPID) via the [WebPush](https://www.nuget.org/packages/WebPush) library
 - **Hosting:** Azure App Service (Linux), deployed via GitHub Actions
 
@@ -24,7 +24,7 @@ A personal todo app built with Blazor Server and Azure Cosmos DB, deployed to [t
 
 ## Local Development
 
-The easiest way to run the app locally is with Docker Compose, which starts both the app and a local Azure Cosmos DB emulator:
+The easiest way to run the app locally is with Docker Compose, which starts both the app and a local MongoDB instance:
 
 ```bash
 docker compose up --build
@@ -32,17 +32,16 @@ docker compose up --build
 
 The app will be available at `http://localhost:5080`.
 
-> **Note:** The Cosmos DB emulator can take a minute to start. The app retries the connection automatically.
-
 ## Configuration
 
 Configuration is managed via `appsettings.json` and environment variables. The following settings are required:
 
 | Setting | Description |
 |---|---|
-| `CosmosDb:ConnectionString` | Azure Cosmos DB connection string |
-| `CosmosDb:DatabaseName` | Database name (default: `TodoApp`) |
-| `CosmosDb:ContainerName` | Container name (default: `Todos`) |
+| `MongoDb:ConnectionString` | MongoDB connection string |
+| `MongoDb:DatabaseName` | Database name (default: `TodoApp`) |
+| `MongoDb:TodosCollection` | Collection name for todos (default: `todos`) |
+| `MongoDb:SubscriptionsCollection` | Collection name for push subscriptions (default: `pushSubscriptions`) |
 | `Vapid:PublicKey` | VAPID public key for Web Push |
 | `Vapid:PrivateKey` | VAPID private key for Web Push |
 | `Vapid:Subject` | VAPID subject (e.g. `mailto:you@example.com`) |
